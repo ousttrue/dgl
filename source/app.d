@@ -19,37 +19,6 @@ void main()
 
 void PrintVersion()
 {
-}
-
-
-uint CreateShaderProgram()
-{
-    return 0;
-}
-
-
-void main() 
-{
-    DerelictGL.load();
-    DerelictGLFW3.load();
-    if (!glfwInit()) {
-        writeln("glfwInit didn't work");
-        return;
-    }
-
-    const int width = 800;
-    const int height = 600;
-    auto window = glfwCreateWindow(width, height
-            ,"GLFW3"
-            ,null, null);
-    if(!window){
-        writeln("fail to glfwCreateWindow");
-        return;
-    }
-
-    glfwMakeContextCurrent(window);
-
-    // after context
     {
         auto str=std.conv.to!string(glGetString(GL_RENDERER));
         writeln("GL_RENDERER: ", str);
@@ -81,11 +50,45 @@ void main()
     }
 
     /*
-    {
-        auto str=std.conv.to!string(glGetString(GL_EXTENSIONS));
-        writeln("GL_EXTENSIONS: ", str);
+       {
+       auto str=std.conv.to!string(glGetString(GL_EXTENSIONS));
+       writeln("GL_EXTENSIONS: ", str);
+       }
+     */
+
+}
+
+
+uint CreateShaderProgram()
+{
+    return 0;
+}
+
+
+void main() 
+{
+    DerelictGL.load();
+
+    DerelictGLFW3.load();
+    if (!glfwInit()) {
+        writeln("glfwInit didn't work");
+        return;
     }
-    */
+
+    const int width = 800;
+    const int height = 600;
+    auto window = glfwCreateWindow(width, height
+            ,"GLFW3"
+            ,null, null);
+    if(!window){
+        writeln("fail to glfwCreateWindow");
+        return;
+    }
+
+    glfwMakeContextCurrent(window);
+
+    // after context
+    PrintVersion();
 
     {
         glViewport(0,0,width,height);
