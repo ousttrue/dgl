@@ -3,66 +3,214 @@ import std.string;
 import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
 
+
 auto vs="#version 400
 
 in vec3 aVertexPosition;
-in vec3 aVertexColor;
 out vec3 fColor;
 
 void main()
 {
-    fColor=aVertexColor;
     gl_Position=vec4(aVertexPosition, 1.0);
 }
 ";
 
 
-void PrintVersion()
+auto fs="#version 400
+
+out vec4 oColor;
+
+
+void main()
 {
-    {
-        auto str=std.conv.to!string(glGetString(GL_RENDERER));
-        writeln("GL_RENDERER: ", str);
-    }
-    {
-        auto str=std.conv.to!string(glGetString(GL_VENDOR));
-        writeln("GL_VENDOR: ", str);
-    }
-    {
-        auto str=std.conv.to!string(glGetString(GL_VERSION));
-        writeln("GL_VERSION: ", str);
-    }
-    {
-        auto str=std.conv.to!string(glGetString(GL_SHADING_LANGUAGE_VERSION));
-        writeln("GL_SHADING_LANGUAGE_VERSION: ", str);
-    }
-    GLint major;
-    glGetIntegerv(GL_MAJOR_VERSION, &major);
-    GLint minor;
-    glGetIntegerv(GL_MINOR_VERSION, &minor);
-    //writeln("MAJOR, MINOR VERSION: ", major, ", ", minor);
+    oColor=vec4(1.0, 1.0, 1.0, 1.0);
+}
+";
 
-    int nExtensions;
-    glGetIntegerv(GL_NUM_EXTENSIONS, &nExtensions);
-    writeln("GL_NUM_EXTENSIONS: ", nExtensions);
-    for(int i=0; i<nExtensions; ++i){
-        //auto str=std.conv.to!string(glGetStringi(GL_EXTENSIONS, i));
-        //writeln(i, ", ", str);
+
+class Shader
+{
+    uint id;
+    string lastError;
+
+    this(uint type)
+    out
+    {
+        assert(this.id);
+    }
+    body
+    {
+        this.id=glCreateShader(type);
     }
 
-    /*
-       {
-       auto str=std.conv.to!string(glGetString(GL_EXTENSIONS));
-       writeln("GL_EXTENSIONS: ", str);
-       }
-     */
+    ~this()
+    {
+        glDeleteShader(this.id);
+    }
 
+    bool compile(string src)
+    {
+        int len=src.length;
+        if(len==0){
+            return false;
+        }
+        auto srcz=toStringz(src);
+        glShaderSource(this.id, 1, &srcz, &len);
+        glCompileShader(this.id);
+        int result;
+        glGetShaderiv(this.id, GL_COMPILE_STATUS, &result);
+        if(result==GL_FALSE){
+            lastError="fail to compile shader";
+            int loglen;
+            glGetShaderiv(this.id, GL_INFO_LOG_LENGTH, &loglen);
+            if(loglen){
+                auto log=new char[loglen];
+                int written;
+                glGetShaderInfoLog(this.id, loglen, &written, &log[0]);
+                lastError=std.conv.to!string(log);
+            }
+            return false;
+        }
+        return true;
+    }
+
+    static createVertexShader()
+    {
+        return new Shader(GL_VERTEX_SHADER);
+    }
+
+    static createFragmentShader()
+    {
+        return new Shader(GL_FRAGMENT_SHADER);
+    }
 }
 
 
-uint CreateShaderProgram()
+class ShaderProgram
 {
-    return 0;
+    uint id;
+	string lastError;
+
+    this()
+    out{
+        assert(this.id);
+    }
+    body
+    {
+        this.id=glCreateProgram();
+    }
+
+    ~this()
+    {
+        glDeleteProgram(this.id);
+    }
+
+    Shader _vertexShader;
+    void vertexShader(Shader shader)
+    {
+        glAttachShader(this.id, shader.id);
+        _vertexShader=shader;
+    }
+
+    Shader _fragmentShader;
+    void fragmentShader(Shader shader)
+    {
+        glAttachShader(this.id, shader.id);
+        _fragmentShader=shader;
+    }
+
+    bool link()
+    {
+        glLinkProgram(this.id);
+        int status;
+        glGetProgramiv(this.id, GL_LINK_STATUS, &status);
+        if(status==GL_FALSE){
+            lastError="fail to link shader";
+            int loglen;
+            glGetProgramiv(this.id, GL_INFO_LOG_LENGTH, &loglen);
+            if(loglen){
+                auto log=new char[loglen];
+                int written;
+                glGetProgramInfoLog(this.id, loglen, &written, &log[0]);
+                lastError=std.conv.to!string(log);
+            }
+            return false;
+        }
+
+        return true;
+    }
+
+    void use()
+    {
+        glUseProgram(this.id);
+    }
 }
+
+
+class VBO
+{
+    int index;
+    uint id;
+
+    this(int index)
+    {
+        this.index=index;
+        glGenBuffers(1, &this.id);
+    }
+
+    ~this()
+    {
+        glDeleteBuffers(1, &this.id);
+    }
+
+    void store(float[] data)
+    {
+        if(data.length==0){
+            return;
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, this.id);
+        glBufferData(GL_ARRAY_BUFFER, 4 * data.length, data.ptr, GL_STATIC_DRAW);
+    }
+
+	void draw()
+	{
+        glBindBuffer(GL_ARRAY_BUFFER, this.id);
+        glEnableVertexAttribArray(index);
+        glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
+}
+
+/*
+class VAO
+{
+    uint id;
+
+    this()
+    {
+        glGenVertexArrays(1, &this.id);
+    }
+
+    ~this()
+    {
+        glDeleteVertexArrays(1, &this.id);
+    }
+
+    void push(int index, uint vbo)
+    {
+        glBindVertexArray(this.id);
+        glEnableVertexAttribArray(index);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
+    }
+
+    void draw()
+    {
+        glBindVertexArray(this.id);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+    }
+}
+*/
 
 
 void main() 
@@ -87,27 +235,56 @@ void main()
 
     glfwMakeContextCurrent(window);
 
-    // after context
-    PrintVersion();
-
-    {
-        glViewport(0,0,width,height);
-        glMatrixMode(GL_PROJECTION);
-        glLoadIdentity();
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    auto glver=DerelictGL.reload();
+	if(glver < derelict.opengl3.gl3.GLVersion.GL40){
+		throw new Exception("OpenGL version too low.");
     }
+
+    // after context
+
+    auto vertexShader=Shader.createVertexShader();
+    if(!vertexShader.compile(vs)){
+        writeln(vertexShader.lastError);
+        return;
+    }
+
+    auto fragmentShader=Shader.createFragmentShader();
+    if(!fragmentShader.compile(fs)){
+        writeln(fragmentShader.lastError);
+        return;
+    }
+
+    auto shader=new ShaderProgram();
+    shader.vertexShader=vertexShader;
+    shader.fragmentShader=fragmentShader;
+    //glBindAttribLocation(shader.id, 0, "aVertexPosition");
+    if(!shader.link()){
+        writeln(shader.lastError);
+        return;
+    }
+    shader.use();
+
+    //auto vao=new VAO;
+
+    auto position=new VBO(0);
+    position.store([
+		-0.8f, -0.8f, 0.5f,
+		0.8f, -0.8f, 0.5f,
+		0.0f,  0.8f, 0.5f
+	]);
+    //vao.push(0, position.id);
+
+    glViewport(0, 0, width ,height);
 
     while (!glfwWindowShouldClose(window))
     {
-        {
-            glClear(GL_COLOR_BUFFER_BIT);
-            glBegin(GL_POLYGON);
-            glVertex2d(0,0);
-            glVertex2d(0,height);
-            glVertex2d(width,height);
-            glVertex2d(height,0);
-            glEnd();
-        }
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+
+        shader.use();
+        //vao.draw();
+        position.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
