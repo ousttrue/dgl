@@ -155,6 +155,19 @@ class ShaderProgram
             glUniformMatrix4fv(location, 1, GL_FALSE, m);
         }
     }
+
+	void draw(RenderTarget rendertarget)
+	{
+        this.use();
+
+		this.set("uProjectionMatrix", rendertarget.projectionMatrix.value_ptr);
+		this.set("uViewMatrix", rendertarget.viewMatrix.value_ptr);
+
+        this.set("uModelMatrix", rendertarget.root.transform.matrix.value_ptr);
+
+        rendertarget.root.mesh.draw();
+
+	}
 }
 
 
@@ -237,54 +250,7 @@ struct Transform
 }
 
 
-class RenderTarget
-{
-	Transform camera;
-
-	//mat4 viewMatrix=mat4.identity();
-	mat4 viewMatrix()
-	{
-		return camera.rotation.to_matrix!(4, 4)();
-	}
-
-	mat4 projectionMatrix=mat4.identity();
-
-	void onMouseLeftDown()
-	{
-		writeln("left down");
-	}
-	void onMouseLeftUp()
-	{
-		writeln("left up");
-	}
-	void onMouseMiddleDown()
-	{
-		writeln("m down");
-	}
-	void onMouseMiddleUp()
-	{
-		writeln("m up");
-	}
-	void onMouseRightDown()
-	{
-		writeln("right down");
-	}
-	void onMouseRightUp()
-	{
-		writeln("right up");
-	}
-	void onMouseMove(double x, double y)
-	{
-		//
-	}
-	void onMouseWheel(double d)
-	{
-		writeln("wheel: ", d);
-	}
-}
-
-
-class Model
+class GameObject
 {
 	VBO mesh;
 	Transform transform;
@@ -296,12 +262,90 @@ class Model
 		transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
 	}
 
-	static Model fromVertices(float[] vertices)
+	static GameObject fromVertices(float[] vertices)
 	{
-		auto model=new Model;
+		auto model=new GameObject;
 		model.mesh=new VBO(0);
 		model.mesh.store(vertices);
 		return model;
+	}
+}
+
+
+class RenderTarget
+{
+	Transform camera;
+	GameObject root;
+
+	//mat4 viewMatrix=mat4.identity();
+	mat4 viewMatrix()
+	{
+		return camera.rotation.to_matrix!(4, 4)();
+	}
+
+	mat4 projectionMatrix=mat4.identity();
+
+	
+	bool isMouseLeftDown;
+	void onMouseLeftDown()
+	{
+		writeln("left down");
+		isMouseLeftDown=true;
+	}
+	void onMouseLeftUp()
+	{
+		writeln("left up");
+		isMouseLeftDown=false;
+	}
+
+	bool isMouseMiddleDown;
+	void onMouseMiddleDown()
+	{
+		writeln("m down");
+		isMouseMiddleDown=true;
+	}
+	void onMouseMiddleUp()
+	{
+		writeln("m up");
+		isMouseMiddleDown=false;
+	}
+
+	bool isMouseRightDown;
+	void onMouseRightDown()
+	{
+		writeln("right down");
+		isMouseRightDown=true;
+	}
+	void onMouseRightUp()
+	{
+		writeln("right up");
+		isMouseRightDown=false;
+	}
+
+	double mouseLastX;
+	double mouseLastY;
+	void onMouseMove(double x, double y)
+	{
+		if(!std.math.isnan(x) && !std.math.isnan(y)){
+			double dx=x-mouseLastX;
+			double dy=y-mouseLastY;
+			if(isMouseLeftDown){
+			}
+			if(isMouseMiddleDown){
+			}
+			if(isMouseRightDown){
+				double dxrad=std.math.PI * dx / 180.0;
+				double dyrad=std.math.PI * dy / 180.0;
+				root.transform.rotation=root.transform.rotation.rotatey(dxrad).rotatex(dyrad);
+			}
+		}
+		mouseLastX=x;
+		mouseLastY=y;
+	}
+
+	void onMouseWheel(double d)
+	{
+		writeln("wheel: ", d);
 	}
 }
 
@@ -336,19 +380,19 @@ extern(C) void mousebutton_callback(GLFWwindow* window, int button, int action, 
 
 			case 1:
 				if(action){
-					renderTarget.onMouseMiddleDown();
+					renderTarget.onMouseRightDown();
 				}
 				else{
-					renderTarget.onMouseMiddleUp();
+					renderTarget.onMouseRightUp();
 				}
 				break;
 
 			case 2:
 				if(action){
-					renderTarget.onMouseRightDown();
+					renderTarget.onMouseMiddleDown();
 				}
 				else{
-					renderTarget.onMouseRightUp();
+					renderTarget.onMouseMiddleUp();
 				}
 				break;
 
@@ -444,7 +488,7 @@ void main()
     }
     shader.use();
 
-	auto model=Model.fromVertices([
+	auto model=GameObject.fromVertices([
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
 		0.0f,  0.8f, 0.5f
@@ -453,22 +497,16 @@ void main()
 
 	auto backbuffer=new RenderTarget;
 	glfwSetWindowUserPointer(window, &backbuffer);
-
+	backbuffer.root=model;
 
     while (!glfwWindowShouldClose(window))
     {
-		model.animate();
+		//model.animate();
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        shader.use();
-
-        shader.set("uModelMatrix", model.transform.matrix.value_ptr);
-		shader.set("uViewMatrix", backbuffer.viewMatrix.value_ptr);
-		shader.set("uProjectionMatrix", backbuffer.projectionMatrix.value_ptr);
-
-        model.mesh.draw();
+		shader.draw(backbuffer);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
