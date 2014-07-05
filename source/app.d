@@ -2,16 +2,19 @@ import std.stdio;
 import std.string;
 import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
+import gl3n.linalg;
 
 
 auto vs="#version 400
 
 in vec3 aVertexPosition;
-out vec3 fColor;
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjectionMatrix;
 
 void main()
 {
-    gl_Position=vec4(aVertexPosition, 1.0);
+    gl_Position=uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
 }
 ";
 
@@ -144,6 +147,14 @@ class ShaderProgram
     {
         glUseProgram(this.id);
     }
+
+    void set(const char* name, const float *m)
+    {
+        uint location=glGetUniformLocation(this.id, name);
+        if(location>=0){
+            glUniformMatrix4fv(location, 1, GL_FALSE, m);
+        }
+    }
 }
 
 
@@ -181,6 +192,7 @@ class VBO
 	}
 }
 
+
 /*
 class VAO
 {
@@ -213,6 +225,166 @@ class VAO
 */
 
 
+struct Transform
+{
+	vec3 position;
+	quat rotation=quat.identity();
+
+	mat4 matrix()
+	{
+		return rotation.to_matrix!(4, 4)();
+	}
+}
+
+
+class RenderTarget
+{
+	Transform camera;
+
+	//mat4 viewMatrix=mat4.identity();
+	mat4 viewMatrix()
+	{
+		return camera.rotation.to_matrix!(4, 4)();
+	}
+
+	mat4 projectionMatrix=mat4.identity();
+
+	void onMouseLeftDown()
+	{
+		writeln("left down");
+	}
+	void onMouseLeftUp()
+	{
+		writeln("left up");
+	}
+	void onMouseMiddleDown()
+	{
+		writeln("m down");
+	}
+	void onMouseMiddleUp()
+	{
+		writeln("m up");
+	}
+	void onMouseRightDown()
+	{
+		writeln("right down");
+	}
+	void onMouseRightUp()
+	{
+		writeln("right up");
+	}
+	void onMouseMove(double x, double y)
+	{
+		//
+	}
+	void onMouseWheel(double d)
+	{
+		writeln("wheel: ", d);
+	}
+}
+
+
+class Model
+{
+	VBO mesh;
+	Transform transform;
+
+	float angle=0;
+	void animate()
+	{
+		angle+=0.1/60 * std.math.PI /180;
+		transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
+	}
+
+	static Model fromVertices(float[] vertices)
+	{
+		auto model=new Model;
+		model.mesh=new VBO(0);
+		model.mesh.store(vertices);
+		return model;
+	}
+}
+
+
+extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow
+{
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+
+extern(C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow
+{
+    glViewport(0, 0, width, height);
+}
+
+
+extern(C) void mousebutton_callback(GLFWwindow* window, int button, int action, int mods) nothrow
+{
+	auto renderTarget=cast(RenderTarget*)glfwGetWindowUserPointer(window);
+	try{
+		switch(button)
+		{
+			case 0:
+				if(action){
+					renderTarget.onMouseLeftDown();
+				}
+				else{
+					renderTarget.onMouseLeftUp();
+				}
+				break;
+
+			case 1:
+				if(action){
+					renderTarget.onMouseMiddleDown();
+				}
+				else{
+					renderTarget.onMouseMiddleUp();
+				}
+				break;
+
+			case 2:
+				if(action){
+					renderTarget.onMouseRightDown();
+				}
+				else{
+					renderTarget.onMouseRightUp();
+				}
+				break;
+
+			default:
+				break;
+		}
+	}
+	catch(Throwable t)
+	{
+		//writeln(t);
+	}
+}
+
+extern(C) void mousemove_callback(GLFWwindow* window, double x, double y) nothrow
+{
+	auto renderTarget=cast(RenderTarget*)glfwGetWindowUserPointer(window);
+	try{
+		renderTarget.onMouseMove(x, y);
+	}
+	catch(Throwable t)
+	{
+	}
+}
+
+extern(C) void mousewheel_callback(GLFWwindow* window, double x, double y) nothrow
+{
+	auto renderTarget=cast(RenderTarget*)glfwGetWindowUserPointer(window);
+	try{
+		renderTarget.onMouseWheel(y);
+	}
+	catch(Throwable t)
+	{
+	}
+}
+
+
 void main() 
 {
     DerelictGL.load();
@@ -233,6 +405,12 @@ void main()
         return;
     }
 
+	glfwSetFramebufferSizeCallback(window, &framebuffer_size_callback);
+	glfwSetKeyCallback(window, &key_callback);
+	glfwSetMouseButtonCallback(window, &mousebutton_callback);
+	glfwSetCursorPosCallback(window, &mousemove_callback);
+	glfwSetScrollCallback(window, &mousewheel_callback);
+
     glfwMakeContextCurrent(window);
 
     auto glver=DerelictGL.reload();
@@ -248,11 +426,13 @@ void main()
         return;
     }
 
+
     auto fragmentShader=Shader.createFragmentShader();
     if(!fragmentShader.compile(fs)){
         writeln(fragmentShader.lastError);
         return;
     }
+
 
     auto shader=new ShaderProgram();
     shader.vertexShader=vertexShader;
@@ -264,27 +444,31 @@ void main()
     }
     shader.use();
 
-    //auto vao=new VAO;
-
-    auto position=new VBO(0);
-    position.store([
+	auto model=Model.fromVertices([
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
 		0.0f,  0.8f, 0.5f
 	]);
-    //vao.push(0, position.id);
 
-    glViewport(0, 0, width ,height);
+
+	auto backbuffer=new RenderTarget;
+	glfwSetWindowUserPointer(window, &backbuffer);
+
 
     while (!glfwWindowShouldClose(window))
     {
+		model.animate();
+
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-
         shader.use();
-        //vao.draw();
-        position.draw();
+
+        shader.set("uModelMatrix", model.transform.matrix.value_ptr);
+		shader.set("uViewMatrix", backbuffer.viewMatrix.value_ptr);
+		shader.set("uProjectionMatrix", backbuffer.projectionMatrix.value_ptr);
+
+        model.mesh.draw();
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -292,4 +476,3 @@ void main()
 
     glfwTerminate();
 }
-

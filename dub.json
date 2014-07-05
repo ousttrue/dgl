@@ -4,7 +4,8 @@
 	"copyright": "Copyright c 2014, focke",
 	"authors": ["focke"],
 	"dependencies": {
-        "derelict-gl3": ">=1.0.2",
-        "derelict-glfw3": "~master"
+        "derelict-gl3": "~master",
+        "derelict-glfw3": "~master",
+        "gl3n": "~master",
 	}
 }
