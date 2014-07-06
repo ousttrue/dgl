@@ -134,16 +134,35 @@ class Texture
            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
          */
 
-        glTexImage2D(
-                GL_TEXTURE_2D,
-                0,
-                GL_RGB,
-                w, h,
-                0,
-                GL_RGB,
-                GL_UNSIGNED_BYTE,
-                data);
-        return true;
+        switch(pixelbits)
+        {
+            case 32:
+                glTexImage2D(
+                        GL_TEXTURE_2D,
+                        0,
+                        GL_RGBA,
+                        w, h,
+                        0,
+                        GL_RGBA,
+                        GL_UNSIGNED_BYTE,
+                        data);
+                return true;
+
+            case 24:
+                glTexImage2D(
+                        GL_TEXTURE_2D,
+                        0,
+                        GL_RGB,
+                        w, h,
+                        0,
+                        GL_RGB,
+                        GL_UNSIGNED_BYTE,
+                        data);
+                return true;
+
+			default:
+				return false;
+        }
     }
 }
 

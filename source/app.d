@@ -134,24 +134,32 @@ void main()
     // model
 	auto model=new GameObject;
     // positions
-    model.mesh.push(VBO.fromVertices(3, [
+    model.mesh.push(VBO!float.fromVertices(3, [
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
-		0.0f,  0.8f, 0.5f
+		0.8f,  0.8f, 0.5f,
+		-0.8f,  0.8f, 0.5f,
 	]));
     // normals
-    model.mesh.push(VBO.fromVertices(3, [
+    model.mesh.push(VBO!float.fromVertices(3, [
+        0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
     ]));
 	// uvs
-	model.mesh.push(VBO.fromVertices(2, [
+	model.mesh.push(VBO!float.fromVertices(2, [
 		0.0f, 0.0f,
 		1.0f, 0.0f,
 		1.0f, 1.0f,
 		0.0f, 1.0f,
 	]));
+    // indices
+    model.mesh.elements=VBO!uint.fromVertices(1, [
+                0, 1, 2,
+                2, 3, 0,
+                ]);
+
 	// animation
 	auto animation=new Animation;
 	model.animation=animation;

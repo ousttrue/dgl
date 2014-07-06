@@ -164,15 +164,25 @@ class ShaderProgram
 }
 
 
-class VBO
+class VBO(T)
 {
     uint id;
+
+	static if(is(T==float)){
+		uint usage(){ return GL_ARRAY_BUFFER; }
+		uint type(){ return GL_FLOAT; }
+	}
+	static if(is(T==uint)){
+		uint usage(){ return GL_ELEMENT_ARRAY_BUFFER; }
+		uint type(){ return GL_UNSIGNED_INT; }
+	}
+	
     uint components=3;
 
     this(int components)
     out{
         assert(this.id);
-		assert(components);
+		assert(this.components);
     }
     body
     {
@@ -185,25 +195,26 @@ class VBO
         glDeleteBuffers(1, &this.id);
     }
 
-    void store(float[] data)
+    void store(T[] data)
     {
         if(data.length==0){
             return;
         }
-        glBindBuffer(GL_ARRAY_BUFFER, this.id);
-        glBufferData(GL_ARRAY_BUFFER, float.sizeof * data.length, data.ptr, GL_STATIC_DRAW);
+        glBindBuffer(this.usage, this.id);
+        glBufferData(this.usage
+                , T.sizeof * data.length, data.ptr, GL_STATIC_DRAW);
     }
 
     void bind(int index)
     {
-        glBindBuffer(GL_ARRAY_BUFFER, this.id);
+        glBindBuffer(this.usage, this.id);
         glEnableVertexAttribArray(index);
-        glVertexAttribPointer(index, this.components, GL_FLOAT, GL_FALSE, 0, null);
+        glVertexAttribPointer(index, this.components, this.type, GL_FALSE, 0, null);
     }
 
-    static VBO fromVertices(uint components, float[] data)
+    static VBO!T fromVertices(uint components, T[] data)
     {
-        auto vbo=new VBO(components);
+        auto vbo=new VBO!T(components);
         vbo.store(data);
         return vbo;
     }
@@ -228,21 +239,32 @@ class VAO
         glDeleteVertexArrays(1, &this.id);
     }
 
-	VBO[] vbos=[];
-    void push(VBO vbo)
+	VBO!float[] vbos=[];
+    void push(VBO!float vbo)
     {
 		int index=vbos.length;
 		vbos~=vbo;
         glBindVertexArray(this.id);
         glEnableVertexAttribArray(index);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
-        glVertexAttribPointer(index, vbo.components, GL_FLOAT, GL_FALSE, 0, null);
+        glBindBuffer(vbo.usage, vbo.id);
+        glVertexAttribPointer(index, vbo.components, vbo.type, GL_FALSE, 0, null);
     }
+	
+	private VBO!uint _elements;
+	void elements(VBO!uint vbo)
+	{
+		_elements=vbo;
+        glBindBuffer(vbo.usage, vbo.id);
+	}
 
     void draw()
     {
         glBindVertexArray(this.id);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+		if(_elements){
+			glDrawElements(GL_TRIANGLES, 6, _elements.type, null);
+		}
+		else{
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		}
     }
 }
-
