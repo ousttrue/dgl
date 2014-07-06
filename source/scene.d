@@ -17,7 +17,7 @@ struct Transform
 
 class GameObject
 {
-	VBO mesh;
+	VAO mesh;
 	Transform transform;
 
 	float angle=0;
@@ -30,8 +30,12 @@ class GameObject
 	static GameObject fromVertices(float[] vertices)
 	{
 		auto model=new GameObject;
-		model.mesh=new VBO(0);
-		model.mesh.store(vertices);
+		model.mesh=new VAO;
+
+        auto vbo=new VBO(0);
+		vbo.store(vertices);
+        model.mesh.set(vbo);
+
 		return model;
 	}
 }

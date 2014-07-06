@@ -161,8 +161,13 @@ class VBO
 {
     int index;
     uint id;
+    uint components=3;
 
     this(int index)
+    out{
+        assert(this.id);
+    }
+    body
     {
         this.index=index;
         glGenBuffers(1, &this.id);
@@ -182,22 +187,30 @@ class VBO
         glBufferData(GL_ARRAY_BUFFER, 4 * data.length, data.ptr, GL_STATIC_DRAW);
     }
 
-	void draw()
-	{
+    void bind()
+    {
         glBindBuffer(GL_ARRAY_BUFFER, this.id);
         glEnableVertexAttribArray(index);
         glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
+    }
+
+	void draw()
+	{
+        bind();
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	}
 }
 
 
-/*
 class VAO
 {
     uint id;
 
     this()
+    out{
+        assert(this.id);
+    }
+    body
     {
         glGenVertexArrays(1, &this.id);
     }
@@ -207,12 +220,12 @@ class VAO
         glDeleteVertexArrays(1, &this.id);
     }
 
-    void push(int index, uint vbo)
+    void set(VBO vbo)
     {
         glBindVertexArray(this.id);
-        glEnableVertexAttribArray(index);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glEnableVertexAttribArray(vbo.index);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
+        glVertexAttribPointer(vbo.index, vbo.components, GL_FLOAT, GL_FALSE, 0, null);
     }
 
     void draw()
@@ -221,6 +234,4 @@ class VAO
         glDrawArrays(GL_TRIANGLES, 0, 3);
     }
 }
-*/
-
 
