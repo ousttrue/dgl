@@ -7,5 +7,6 @@
         "derelict-gl3": "~master",
         "derelict-glfw3": "~master",
         "gl3n": "~master",
+        "derelict-il": "~master",
 	}
 }

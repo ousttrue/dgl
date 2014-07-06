@@ -4,6 +4,7 @@ import std.stdio;
 import std.algorithm;
 import std.array;
 import gl3n.linalg;
+import texture;
 
 
 class Shader
@@ -134,6 +135,7 @@ class ShaderProgram
             glUniform3fv(location, GL_FALSE, v.value_ptr);
         }
     }
+
     void setMatrix3(string name, ref const (mat3) m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
@@ -141,6 +143,7 @@ class ShaderProgram
             glUniformMatrix3fv(location, 1, GL_FALSE, m.value_ptr);
         }
     }
+
     void setMatrix4(string name, ref const (mat4) m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
@@ -149,6 +152,15 @@ class ShaderProgram
         }
     }
 
+	void setTexture(string name, Texture texture, int index)
+	{
+		glBindTexture(GL_TEXTURE_2D, texture.id);
+		glActiveTexture(GL_TEXTURE0+index);
+		uint location=glGetUniformLocation(this.id, toStringz(name));
+		if(location>=0){
+			glUniform1i(location, index);
+		}
+	}
 }
 
 
@@ -157,13 +169,15 @@ class VBO
     uint id;
     uint components=3;
 
-    this()
+    this(int components)
     out{
         assert(this.id);
+		assert(components);
     }
     body
     {
         glGenBuffers(1, &this.id);
+		this.components=components;
     }
 
     ~this()
@@ -177,19 +191,19 @@ class VBO
             return;
         }
         glBindBuffer(GL_ARRAY_BUFFER, this.id);
-        glBufferData(GL_ARRAY_BUFFER, 4 * data.length, data.ptr, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, float.sizeof * data.length, data.ptr, GL_STATIC_DRAW);
     }
 
     void bind(int index)
     {
         glBindBuffer(GL_ARRAY_BUFFER, this.id);
         glEnableVertexAttribArray(index);
-        glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
+        glVertexAttribPointer(index, this.components, GL_FLOAT, GL_FALSE, 0, null);
     }
 
-    static VBO fromVertices(float[] data)
+    static VBO fromVertices(uint components, float[] data)
     {
-        auto vbo=new VBO;
+        auto vbo=new VBO(components);
         vbo.store(data);
         return vbo;
     }

@@ -6,6 +6,7 @@ import derelict.glfw3.glfw3;
 import gl;
 import scene;
 static import shaderfactory;
+import texture;
 
 
 extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow
@@ -89,6 +90,7 @@ extern(C) void mousewheel_callback(GLFWwindow* window, double x, double y) nothr
 
 void main() 
 {
+    // opengl
     DerelictGL.load();
 
     DerelictGLFW3.load();
@@ -132,22 +134,48 @@ void main()
     // model
 	auto model=new GameObject;
     // positions
-    model.mesh.push(VBO.fromVertices([
+    model.mesh.push(VBO.fromVertices(3, [
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
 		0.0f,  0.8f, 0.5f
 	]));
     // normals
-    model.mesh.push(VBO.fromVertices([
+    model.mesh.push(VBO.fromVertices(3, [
         0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
     ]));
+	// uvs
+	model.mesh.push(VBO.fromVertices(2, [
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+	]));
 	// animation
 	auto animation=new Animation;
 	model.animation=animation;
 
 	backbuffer.root.add_child(model);
+
+	auto image=new Image;
+	if(!image.load("C:/samples/sample.jpg")){
+		return;
+	}
+	int w=image.width;
+	int h=image.height;
+	int pixelbits=image.pixelbits;
+
+	auto texture=new Texture;
+    texture.store(image.ptr, w, h, pixelbits);
+	/*
+	auto data=new ubyte[w * h * pixelbits/8];
+	foreach(ref ubyte b; data){
+		b=255;
+	}
+	texture.store(data.ptr, w, h, pixelbits);
+	*/
+	shader.setTexture("uTex1", texture, 0);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -164,3 +192,4 @@ void main()
 
     glfwTerminate();
 }
+
