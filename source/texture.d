@@ -27,9 +27,9 @@ class Image
     uint id;
 
     this()
-    out{
-        assert(this.id);
-    }
+        out{
+            assert(this.id);
+        }
     body{
         this.id=ilGenImage();
     }
@@ -49,51 +49,50 @@ class Image
 
         ilBindImage(this.id);
         if(!ilLoadL(IL_TYPE_UNKNOWN, data.ptr, data.length)){
-        //if(!ilLoadImage(toStringz(path))){
             return false;
         }
-		return true;
+        return true;
     }
 
-	int width()
-	{
+    int width()
+    {
         ilBindImage(this.id);
-		return ilGetInteger(IL_IMAGE_WIDTH);
-	}
+        return ilGetInteger(IL_IMAGE_WIDTH);
+    }
 
-	int height()
-	{
+    int height()
+    {
         ilBindImage(this.id);
-		return ilGetInteger(IL_IMAGE_HEIGHT);
-	}
+        return ilGetInteger(IL_IMAGE_HEIGHT);
+    }
 
-	int pixelbits()
-	{
-		ilBindImage(this.id);
-		return ilGetInteger(IL_IMAGE_BITS_PER_PIXEL);
-	}
-
-	int stride()
-	{
-		return ilGetInteger(IL_IMAGE_SIZE_OF_DATA)/height;
-	}
-
-	ubyte* ptr()
-	{
+    int pixelbits()
+    {
         ilBindImage(this.id);
-		return ilGetData();
-	}
+        return ilGetInteger(IL_IMAGE_BITS_PER_PIXEL);
+    }
+
+    int stride()
+    {
+        return ilGetInteger(IL_IMAGE_SIZE_OF_DATA)/height;
+    }
+
+    ubyte* ptr()
+    {
+        ilBindImage(this.id);
+        return ilGetData();
+    }
 }
 
 
 class Texture
 {
-	uint id;
+    uint id;
 
     this(uint id)
-    out{
-        assert(this.id);
-    }
+        out{
+            assert(this.id);
+        }
     body
     {
         this.id=id;
@@ -116,34 +115,35 @@ class Texture
     {
         glBindTexture(GL_TEXTURE_2D, this.id);
 
-		//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        //glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
+        glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-		/*
-		glTexParameteri(
-						   GL_TEXTURE_2D,
-						   GL_TEXTURE_MAG_FILTER,
-						   GL_LINEAR);
+        /*
+           glTexParameteri(
+           GL_TEXTURE_2D,
+           GL_TEXTURE_MAG_FILTER,
+           GL_LINEAR);
 
-		glTexParameteri(
-						   GL_TEXTURE_2D,
-						   GL_TEXTURE_MIN_FILTER,
-						   GL_LINEAR_MIPMAP_LINEAR);
+           glTexParameteri(
+           GL_TEXTURE_2D,
+           GL_TEXTURE_MIN_FILTER,
+           GL_LINEAR_MIPMAP_LINEAR);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		*/
+           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+           glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+         */
 
         glTexImage2D(
-					 GL_TEXTURE_2D,
-					 0,
-					 GL_RGB,
-					 w, h,
-					 0,
-					 GL_RGB,
-					 GL_UNSIGNED_BYTE,
-					 data);
-		return true;
+                GL_TEXTURE_2D,
+                0,
+                GL_RGB,
+                w, h,
+                0,
+                GL_RGB,
+                GL_UNSIGNED_BYTE,
+                data);
+        return true;
     }
 }
+
