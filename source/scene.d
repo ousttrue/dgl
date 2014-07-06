@@ -1,5 +1,6 @@
 import std.stdio;
 import gl;
+import vbo;
 public import gl3n.linalg;
 
 

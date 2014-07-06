@@ -4,6 +4,7 @@ import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
 
 import gl;
+import vbo;
 import scene;
 static import shaderfactory;
 import texture;
