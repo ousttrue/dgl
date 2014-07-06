@@ -1,5 +1,5 @@
 import std.stdio;
-import gl;
+import shader;
 import vbo;
 public import gl3n.linalg;
 

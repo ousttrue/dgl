@@ -3,7 +3,7 @@ import std.string;
 import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
 
-import gl;
+import shader;
 import vbo;
 import scene;
 static import shaderfactory;
