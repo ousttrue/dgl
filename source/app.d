@@ -96,11 +96,7 @@ void main()
         return;
     }
 
-    const int width = 800;
-    const int height = 600;
-    auto window = glfwCreateWindow(width, height
-            ,"GLFW3"
-            ,null, null);
+    auto window = glfwCreateWindow(800, 600 ,"GLFW3" ,null, null);
     if(!window){
         writeln("fail to glfwCreateWindow");
         return;
@@ -113,27 +109,29 @@ void main()
 	glfwSetScrollCallback(window, &mousewheel_callback);
 
     glfwMakeContextCurrent(window);
+    // after context
 
     auto glver=DerelictGL.reload();
 	if(glver < derelict.opengl3.gl3.GLVersion.GL40){
 		throw new Exception("OpenGL version too low.");
     }
 
-    // after context
+    // backbuffer
+	auto backbuffer=new RenderTarget;
+	glfwSetWindowUserPointer(window, &backbuffer);
 
+    // shader
     auto vertexShader=Shader.createVertexShader();
     if(!vertexShader.compile(vs)){
         writeln(vertexShader.lastError);
         return;
     }
 
-
     auto fragmentShader=Shader.createFragmentShader();
     if(!fragmentShader.compile(fs)){
         writeln(fragmentShader.lastError);
         return;
     }
-
 
     auto shader=new ShaderProgram();
     shader.vertexShader=vertexShader;
@@ -143,19 +141,15 @@ void main()
         writeln(shader.lastError);
         return;
     }
-    shader.use();
+    backbuffer.shader=shader;
 
+    // model
 	auto model=GameObject.fromVertices([
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
 		0.0f,  0.8f, 0.5f
 	]);
-
-
-	auto backbuffer=new RenderTarget;
-	glfwSetWindowUserPointer(window, &backbuffer);
 	backbuffer.root=model;
-    backbuffer.shader=shader;
 
     while (!glfwWindowShouldClose(window))
     {
