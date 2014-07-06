@@ -8,6 +8,7 @@ import vbo;
 import scene;
 static import shaderfactory;
 import texture;
+import rendertarget;
 
 
 extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow
@@ -177,15 +178,9 @@ void main()
 
 	auto texture=new Texture;
     texture.store(image.ptr, w, h, pixelbits);
-	/*
-	auto data=new ubyte[w * h * pixelbits/8];
-	foreach(ref ubyte b; data){
-		b=255;
-	}
-	texture.store(data.ptr, w, h, pixelbits);
-	*/
 	shader.setTexture("uTex1", texture, 0);
 
+    // main loop
     while (!glfwWindowShouldClose(window))
     {
 		backbuffer.root.animate();
