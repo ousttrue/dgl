@@ -143,11 +143,15 @@ void main()
         0.0f, 0.0f, -1.0f,
         0.0f, 0.0f, -1.0f,
     ]));
-	backbuffer.root=model;
+	// animation
+	auto animation=new Animation;
+	model.animation=animation;
+
+	backbuffer.root.add_child(model);
 
     while (!glfwWindowShouldClose(window))
     {
-		//model.animate();
+		backbuffer.root.animate();
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);

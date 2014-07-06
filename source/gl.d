@@ -127,25 +127,25 @@ class ShaderProgram
         glUseProgram(this.id);
     }
 
-    void set(string name, const float* v)
+    void set(string name, ref const(vec3) v)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
-            glUniform3fv(location, GL_FALSE, v);
+            glUniform3fv(location, GL_FALSE, v.value_ptr);
         }
     }
-    void setMatrix3(string name, const float* m)
+    void setMatrix3(string name, ref const (mat3) m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
-            glUniformMatrix3fv(location, 1, GL_FALSE, m);
+            glUniformMatrix3fv(location, 1, GL_FALSE, m.value_ptr);
         }
     }
-    void setMatrix4(string name, const float *m)
+    void setMatrix4(string name, ref const (mat4) m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
-            glUniformMatrix4fv(location, 1, GL_FALSE, m);
+            glUniformMatrix4fv(location, 1, GL_FALSE, m.value_ptr);
         }
     }
 

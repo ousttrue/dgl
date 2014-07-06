@@ -17,6 +17,18 @@ struct Transform
 }
 
 
+class Animation
+{
+	float angle=0;
+
+	void apply(GameObject go)
+	{
+		angle+=0.1/60 * std.math.PI /180;
+		go.transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
+	}
+}
+
+
 class GameObject
 {
 	VAO mesh;
@@ -27,26 +39,58 @@ class GameObject
         mesh=new VAO; 
     }
 
-	float angle=0;
+	void add_child(GameObject child)
+	{
+		children~=child;
+	}
+
+	Animation animation;
+
 	void animate()
 	{
-		angle+=0.1/60 * std.math.PI /180;
-		transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
+		if(this.animation){
+			animation.apply(this);
+		}
+
+		foreach(GameObject child; this.children)
+		{
+			child.animate();
+		}
 	}
 }
 
 
 class RenderTarget
 {
-	Transform camera;
-	GameObject root;
-
-	ref mat4 viewMatrix()
+	private GameObject _root;
+	GameObject root()
 	{
-		return camera.matrix;
+		return _root;
 	}
 
+	private GameObject _light;
+	GameObject light()
+	{
+		return _light;
+	}
+
+	private GameObject _camera;
+	GameObject camera()
+	{
+		return _camera;
+	}
 	mat4 projectionMatrix=mat4.identity();
+
+	this()
+	{
+		_root=new GameObject;
+		// light
+		_light=new GameObject;
+		root.add_child(_light);
+		// camera
+		_camera=new GameObject;
+		root.add_child(_camera);
+	}
 
     ShaderProgram shader;
 	
@@ -100,7 +144,7 @@ class RenderTarget
 			if(isMouseRightDown){
 				double dxrad=std.math.PI * dx / 180.0;
 				double dyrad=std.math.PI * dy / 180.0;
-				root.transform.rotation=root.transform.rotation.rotatey(dxrad).rotatex(dyrad);
+				camera.transform.rotation=camera.transform.rotation.rotatey(dxrad).rotatex(dyrad);
 			}
 		}
 		mouseLastX=x;
@@ -116,10 +160,12 @@ class RenderTarget
 	{
         this.shader.use();
 
-		this.shader.setMatrix4("uProjectionMatrix", this.projectionMatrix.value_ptr);
-		this.shader.setMatrix4("uViewMatrix", this.viewMatrix.value_ptr);
-		auto l=vec3(1, 1, 1);
-        this.shader.set("uLightPosition", l.value_ptr);
+		this.shader.setMatrix4("uProjectionMatrix", this.projectionMatrix);
+		this.shader.setMatrix4("uViewMatrix", this.camera.transform.matrix);
+
+		auto l=this.light.transform.position;
+		//auto l=vec3(1, 1, 1);
+        this.shader.set("uLightPosition", l);
 
 		auto m=mat4.identity;
 		draw(this.root, m);
@@ -128,10 +174,10 @@ class RenderTarget
 	void draw(GameObject go, ref const(mat4) parent)
 	{
 		auto m=go.transform.matrix * parent;
-        this.shader.setMatrix4("uModelMatrix", m.value_ptr);
+        this.shader.setMatrix4("uModelMatrix", m);
 		
 		auto n=mat3(m);
-        this.shader.setMatrix3("uNormalMatrix", n.value_ptr);
+        this.shader.setMatrix3("uNormalMatrix", n);
 
         go.mesh.draw();
 
