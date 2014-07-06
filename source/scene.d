@@ -8,9 +8,11 @@ struct Transform
 	vec3 position;
 	quat rotation=quat.identity();
 
-	mat4 matrix()
+	mat4 _matrix;
+	ref mat4 matrix()
 	{
-		return rotation.to_matrix!(4, 4)();
+		_matrix=rotation.to_matrix!(4, 4);
+		return _matrix;
 	}
 }
 
@@ -19,6 +21,7 @@ class GameObject
 {
 	VAO mesh;
 	Transform transform;
+	GameObject[] children=[];
 
     this(){
         mesh=new VAO; 
@@ -30,7 +33,6 @@ class GameObject
 		angle+=0.1/60 * std.math.PI /180;
 		transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
 	}
-
 }
 
 
@@ -39,10 +41,9 @@ class RenderTarget
 	Transform camera;
 	GameObject root;
 
-	//mat4 viewMatrix=mat4.identity();
-	mat4 viewMatrix()
+	ref mat4 viewMatrix()
 	{
-		return camera.rotation.to_matrix!(4, 4)();
+		return camera.matrix;
 	}
 
 	mat4 projectionMatrix=mat4.identity();
@@ -115,12 +116,28 @@ class RenderTarget
 	{
         this.shader.use();
 
-		this.shader.set("uProjectionMatrix", this.projectionMatrix.value_ptr);
-		this.shader.set("uViewMatrix", this.viewMatrix.value_ptr);
+		this.shader.setMatrix4("uProjectionMatrix", this.projectionMatrix.value_ptr);
+		this.shader.setMatrix4("uViewMatrix", this.viewMatrix.value_ptr);
+		auto l=vec3(1, 1, 1);
+        this.shader.set("uLightPosition", l.value_ptr);
 
-        this.shader.set("uModelMatrix", this.root.transform.matrix.value_ptr);
+		auto m=mat4.identity;
+		draw(this.root, m);
+	}
 
-        this.root.mesh.draw();
+	void draw(GameObject go, ref const(mat4) parent)
+	{
+		auto m=go.transform.matrix * parent;
+        this.shader.setMatrix4("uModelMatrix", m.value_ptr);
+		
+		auto n=mat3(m);
+        this.shader.setMatrix3("uNormalMatrix", n.value_ptr);
+
+        go.mesh.draw();
+
+		foreach(GameObject child; go.children)
+		{
+			draw(child, m);
+		}
 	}
 }
-

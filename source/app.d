@@ -5,30 +5,7 @@ import derelict.glfw3.glfw3;
 
 import gl;
 import scene;
-
-
-auto vs="#version 400
-in vec3 aVertexPosition;
-uniform mat4 uModelMatrix;
-uniform mat4 uViewMatrix;
-uniform mat4 uProjectionMatrix;
-
-void main()
-{
-    gl_Position=uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-}
-";
-
-
-auto fs="#version 400
-out vec4 oColor;
-
-
-void main()
-{
-    oColor=vec4(1.0, 1.0, 1.0, 1.0);
-}
-";
+static import shaderfactory;
 
 
 extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow
@@ -145,24 +122,9 @@ void main()
 	glfwSetWindowUserPointer(window, &backbuffer);
 
     // shader
-    auto vertexShader=Shader.createVertexShader();
-    if(!vertexShader.compile(vs)){
-        writeln(vertexShader.lastError);
-        return;
-    }
-
-    auto fragmentShader=Shader.createFragmentShader();
-    if(!fragmentShader.compile(fs)){
-        writeln(fragmentShader.lastError);
-        return;
-    }
-
-    auto shader=new ShaderProgram();
-    shader.vertexShader=vertexShader;
-    shader.fragmentShader=fragmentShader;
-    //glBindAttribLocation(shader.id, 0, "aVertexPosition");
-    if(!shader.link()){
-        writeln(shader.lastError);
+    auto shader=shaderfactory.create();
+    if(!shader){
+        writeln("fail to create shader");
         return;
     }
     backbuffer.shader=shader;
@@ -170,16 +132,16 @@ void main()
     // model
 	auto model=new GameObject;
     // positions
-    model.mesh.set(0, VBO.fromVertices([
+    model.mesh.push(VBO.fromVertices([
 		-0.8f, -0.8f, 0.5f,
 		0.8f, -0.8f, 0.5f,
 		0.0f,  0.8f, 0.5f
 	]));
     // normals
-    model.mesh.set(1, VBO.fromVertices([
-        0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f,
-        0.0f, 0.0f, 1.0f,
+    model.mesh.push(VBO.fromVertices([
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
     ]));
 	backbuffer.root=model;
 
@@ -198,4 +160,3 @@ void main()
 
     glfwTerminate();
 }
-

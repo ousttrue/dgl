@@ -1,5 +1,9 @@
 import derelict.opengl3.gl;
 import std.string;
+import std.stdio;
+import std.algorithm;
+import std.array;
+import gl3n.linalg;
 
 
 class Shader
@@ -22,14 +26,18 @@ class Shader
         glDeleteShader(this.id);
     }
 
-    bool compile(string src)
+    bool compile(string[] src)
     {
-        int len=src.length;
-        if(len==0){
+        if(src.length==0){
             return false;
         }
-        auto srcz=toStringz(src);
-        glShaderSource(this.id, 1, &srcz, &len);
+
+        auto srcz=array(map!((s){return toStringz(s);})(src));
+        auto len=array(map!(s => cast(int)s.length)(src));
+        writeln(srcz);
+        writeln(len);
+
+        glShaderSource(this.id, srcz.length, &srcz[0], len.ptr);
         glCompileShader(this.id);
         int result;
         glGetShaderiv(this.id, GL_COMPILE_STATUS, &result);
@@ -119,9 +127,23 @@ class ShaderProgram
         glUseProgram(this.id);
     }
 
-    void set(const char* name, const float *m)
+    void set(string name, const float* v)
     {
-        uint location=glGetUniformLocation(this.id, name);
+        uint location=glGetUniformLocation(this.id, toStringz(name));
+        if(location>=0){
+            glUniform3fv(location, GL_FALSE, v);
+        }
+    }
+    void setMatrix3(string name, const float* m)
+    {
+        uint location=glGetUniformLocation(this.id, toStringz(name));
+        if(location>=0){
+            glUniformMatrix3fv(location, 1, GL_FALSE, m);
+        }
+    }
+    void setMatrix4(string name, const float *m)
+    {
+        uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
             glUniformMatrix4fv(location, 1, GL_FALSE, m);
         }
@@ -192,8 +214,11 @@ class VAO
         glDeleteVertexArrays(1, &this.id);
     }
 
-    void set(int index, VBO vbo)
+	VBO[] vbos=[];
+    void push(VBO vbo)
     {
+		int index=vbos.length;
+		vbos~=vbo;
         glBindVertexArray(this.id);
         glEnableVertexAttribArray(index);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
