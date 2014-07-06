@@ -1,3 +1,7 @@
 .dub
 *.exe
-
+*.exe_cv
+*.pdb
+*.visualdproj
+*.suo
+*.sln
