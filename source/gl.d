@@ -2,33 +2,6 @@ import derelict.opengl3.gl;
 import std.string;
 
 
-auto vs="#version 400
-
-
-in vec3 aVertexPosition;
-uniform mat4 uModelMatrix;
-uniform mat4 uViewMatrix;
-uniform mat4 uProjectionMatrix;
-
-void main()
-{
-    gl_Position=uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-}
-";
-
-
-auto fs="#version 400
-
-out vec4 oColor;
-
-
-void main()
-{
-    oColor=vec4(1.0, 1.0, 1.0, 1.0);
-}
-";
-
-
 class Shader
 {
     uint id;
@@ -159,17 +132,15 @@ class ShaderProgram
 
 class VBO
 {
-    int index;
     uint id;
     uint components=3;
 
-    this(int index)
+    this()
     out{
         assert(this.id);
     }
     body
     {
-        this.index=index;
         glGenBuffers(1, &this.id);
     }
 
@@ -187,18 +158,19 @@ class VBO
         glBufferData(GL_ARRAY_BUFFER, 4 * data.length, data.ptr, GL_STATIC_DRAW);
     }
 
-    void bind()
+    void bind(int index)
     {
         glBindBuffer(GL_ARRAY_BUFFER, this.id);
         glEnableVertexAttribArray(index);
         glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, 0, null);
     }
 
-	void draw()
-	{
-        bind();
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-	}
+    static VBO fromVertices(float[] data)
+    {
+        auto vbo=new VBO;
+        vbo.store(data);
+        return vbo;
+    }
 }
 
 
@@ -220,12 +192,12 @@ class VAO
         glDeleteVertexArrays(1, &this.id);
     }
 
-    void set(VBO vbo)
+    void set(int index, VBO vbo)
     {
         glBindVertexArray(this.id);
-        glEnableVertexAttribArray(vbo.index);
+        glEnableVertexAttribArray(index);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.id);
-        glVertexAttribPointer(vbo.index, vbo.components, GL_FLOAT, GL_FALSE, 0, null);
+        glVertexAttribPointer(index, vbo.components, GL_FLOAT, GL_FALSE, 0, null);
     }
 
     void draw()

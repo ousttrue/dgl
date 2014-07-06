@@ -20,6 +20,10 @@ class GameObject
 	VAO mesh;
 	Transform transform;
 
+    this(){
+        mesh=new VAO; 
+    }
+
 	float angle=0;
 	void animate()
 	{
@@ -27,17 +31,6 @@ class GameObject
 		transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
 	}
 
-	static GameObject fromVertices(float[] vertices)
-	{
-		auto model=new GameObject;
-		model.mesh=new VAO;
-
-        auto vbo=new VBO(0);
-		vbo.store(vertices);
-        model.mesh.set(vbo);
-
-		return model;
-	}
 }
 
 
