@@ -83,6 +83,7 @@ ShaderProgram create()
         auto vars=[
             Variable(glslbind.vertexattribute, glsltype.vec3, "aVertexPosition"),
             Variable(glslbind.vertexattribute, glsltype.vec3, "aVertexNormal"),
+            Variable(glslbind.vertexattribute, glsltype.vec4, "aVertexColor"),
 			Variable(glslbind.vertexattribute, glsltype.vec2, "aVertexTexCoord"),
             Variable(glslbind.uniform, glsltype.mat4, "uModelMatrix"),
             Variable(glslbind.uniform, glsltype.mat4, "uViewMatrix"),
@@ -91,11 +92,12 @@ ShaderProgram create()
             Variable(glslbind.uniform, glsltype.vec3, "uLightPosition"),
 			Variable(glslbind.output, glsltype.vec2, "fTexCoord"),
             Variable(glslbind.output, glsltype.vec3, "fLightIntensity"),
+            Variable(glslbind.output, glsltype.vec4, "fColor"),
             ];
         auto src="
 gl_Position=uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
-
 fTexCoord=aVertexTexCoord;
+fColor=aVertexColor;
 
 vec3 tnorm=normalize(uNormalMatrix * aVertexNormal);
 vec4 eyeCoords=uViewMatrix * uModelMatrix * vec4(aVertexPosition, 1.0);
@@ -113,13 +115,15 @@ fLightIntensity=vec3(max(dot(s, tnorm), 0));
         auto vars=[
 			Variable(glslbind.input, glsltype.vec2, "fTexCoord"),
             Variable(glslbind.input, glsltype.vec3, "fLightIntensity"),
+            Variable(glslbind.input, glsltype.vec4, "fColor"),
             Variable(glslbind.output, glsltype.vec4, "oColor"),
 			Variable(glslbind.uniform, glsltype.sampler2D, "uTex1"),
             ];
         auto src="
 vec4 texColor=texture(uTex1, fTexCoord);
 //vec4 texColor=vec4(fTexCoord, 1, 1);
-oColor=texColor * vec4(fLightIntensity, 1.0);
+//oColor=texColor * vec4(fLightIntensity, 1.0);
+oColor=texColor * fColor;
 ";
         if(!fragmentShader.compile(build_shader(vars, src))){
             writeln(fragmentShader.lastError);

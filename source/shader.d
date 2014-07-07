@@ -128,7 +128,7 @@ class ShaderProgram
         glUseProgram(this.id);
     }
 
-    void set(string name, ref const(vec3) v)
+    void set(string name, vec3 v)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
@@ -136,7 +136,7 @@ class ShaderProgram
         }
     }
 
-    void setMatrix3(string name, ref const (mat3) m)
+    void setMatrix3(string name, mat3 m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){
@@ -144,7 +144,7 @@ class ShaderProgram
         }
     }
 
-    void setMatrix4(string name, ref const (mat4) m)
+    void setMatrix4(string name, mat4 m)
     {
         uint location=glGetUniformLocation(this.id, toStringz(name));
         if(location>=0){

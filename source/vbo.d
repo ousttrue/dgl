@@ -104,5 +104,58 @@ class VAO
 			glDrawArrays(GL_TRIANGLES, 0, 3);
 		}
     }
+
+    static VAO createQuad(float size)
+    {
+        auto mesh=new VAO;
+
+        mesh.push(VBO!float.fromVertices(3, [
+                    -size, -size, 0.5f,
+                    size, -size, 0.5f,
+                    size,  size, 0.5f,
+                    -size,  size, 0.5f,
+                    ]));
+        // normals
+        mesh.push(VBO!float.fromVertices(3, [
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    0.0f, 0.0f, -1.0f,
+                    ]));
+        // colors
+        mesh.push(VBO!float.fromVertices(4, [
+                    1f, 1f, 1f, 1f,
+                    1f, 1f, 1f, 1f,
+                    1f, 1f, 1f, 1f,
+                    1f, 1f, 1f, 1f,
+                    ]));
+        // uvs
+        mesh.push(VBO!float.fromVertices(2, [
+                    0.0f, 0.0f,
+                    1.0f, 0.0f,
+                    1.0f, 1.0f,
+                    0.0f, 1.0f,
+                    ]));
+        // indices
+        mesh.elements=VBO!uint.fromVertices(1, [
+                0, 1, 2,
+                2, 3, 0,
+                ]);
+
+        return mesh;
+    }
+
+    static VAO createAxis()
+    {
+        auto mesh=new VAO;
+        return mesh;
+    }
+
+    static VAO createGrid()
+    {
+        auto mesh=new VAO;
+        return mesh;
+    }
+
 }
 

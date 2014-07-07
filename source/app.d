@@ -95,47 +95,38 @@ Scene create3DScene()
 {
 	auto scene=new Scene;
 
+    // axis
+    {
+        auto model=new GameObject;
+        scene.root.add_child(model);
+        model.mesh=VAO.createAxis();
+    }
+
+    // grid
+    {
+        auto model=new GameObject;
+        scene.root.add_child(model);
+        model.mesh=VAO.createGrid();
+    }
+
     // model
-	auto model=new GameObject;
-	scene.root.add_child(model);
+    {
+        auto model=new GameObject;
+        scene.root.add_child(model);
+        model.mesh=VAO.createQuad(0.8f);
 
-    // positions
-    model.mesh.push(VBO!float.fromVertices(3, [
-		-0.8f, -0.8f, 0.5f,
-		0.8f, -0.8f, 0.5f,
-		0.8f,  0.8f, 0.5f,
-		-0.8f,  0.8f, 0.5f,
-	]));
-    // normals
-    model.mesh.push(VBO!float.fromVertices(3, [
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-    ]));
-	// uvs
-	model.mesh.push(VBO!float.fromVertices(2, [
-		0.0f, 1.0f,
-		1.0f, 1.0f,
-		1.0f, 0.0f,
-		0.0f, 0.0f,
-	]));
-    // indices
-    model.mesh.elements=VBO!uint.fromVertices(1, [
-		0, 1, 2,
-		2, 3, 0,
-	]);
+        // texture
+        auto texture=Texture.load("C:/samples/sample.png");
+        model.texture=texture;
 
-	// texture
-	auto texture=Texture.load("C:/samples/sample.png");
-	model.texture=texture;
-
-	// animation
-	auto animation=new Animation;
-	model.animation=animation;
+        // animation
+        auto animation=new Animation;
+        model.animation=animation;
+    }
 
 	return scene;
 }
+
 
 Scene createSprites(FBO fbo)
 {
@@ -144,33 +135,7 @@ Scene createSprites(FBO fbo)
     // model
 	auto model=new GameObject;
 	scene.root.add_child(model);
-
-    // positions
-    model.mesh.push(VBO!float.fromVertices(3, [
-		-0.8f, -0.8f, 0.5f,
-		0.8f, -0.8f, 0.5f,
-		0.8f,  0.8f, 0.5f,
-		-0.8f,  0.8f, 0.5f,
-	]));
-    // normals
-    model.mesh.push(VBO!float.fromVertices(3, [
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-    ]));
-	// uvs
-	model.mesh.push(VBO!float.fromVertices(2, [
-		0.0f, 0.0f,
-		1.0f, 0.0f,
-		1.0f, 1.0f,
-		0.0f, 1.0f,
-	]));
-    // indices
-    model.mesh.elements=VBO!uint.fromVertices(1, [
-		0, 1, 2,
-		2, 3, 0,
-	]);
+    model.mesh=VAO.createQuad(0.8f);
 
 	// texture
 	model.texture=fbo.texture;
@@ -222,6 +187,7 @@ void main()
 	if(!scene){
 		return;
 	}
+    /*
     auto fbo=new FBO;
 	auto rendertarget=new RenderTarget(scene, shader);
 	rendertarget.fbo=fbo;
@@ -234,13 +200,16 @@ void main()
 	}
 	auto backbuffer=new RenderTarget(sprites, shader);
 	glfwSetWindowUserPointer(window, &rendertarget);
+    */
+	auto backbuffer=new RenderTarget(scene, shader);
+	glfwSetWindowUserPointer(window, &backbuffer);
 
     // main loop
     while (!glfwWindowShouldClose(window))
     {
 		scene.animate();
 
-		rendertarget.draw();
+		//rendertarget.draw();
 		backbuffer.draw();
 
         glfwSwapBuffers(window);
