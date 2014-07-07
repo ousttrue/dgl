@@ -159,8 +159,7 @@ class RenderTarget
 
 	void onMouseWheel(double d)
 	{
-        writeln("dolly: ", d);
-        this.scene.camera.dolly(d);
+        this.scene.camera.dolly(-d);
 	}
 
 	void draw()
