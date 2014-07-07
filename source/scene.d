@@ -35,6 +35,14 @@ struct Transform
 	{
         return _matrix;
     }
+    void matrix(linalg.mat4 m)
+    {
+        _rotation=linalg.quat.from_matrix(linalg.mat3(m));
+        _position.x=m[3][0];
+        _position.y=m[3][1];
+        _position.z=m[3][2];
+        _matrix=m;
+    }
     private void calc()
     {
         //writeln("calc");
@@ -48,22 +56,22 @@ struct Transform
         //writeln(_matrix.as_pretty_string());
 	}
 
-    void advance(double d)
+    linalg.vec3 dir()
     {
         auto m=this.matrix();
-        auto x=m[0][2];
-        auto y=m[1][2];
+        auto x=m[2][0];
+        auto y=m[2][1];
         auto z=m[2][2];
-        //auto dir=linalg.vec3(x, y, z);
-        auto pos=this.position;
-        //writeln(x, y, z, d);
-        auto result=linalg.vec3(
-                pos.x + d * x
-                , pos.y + d * y
-                , pos.z + d * z
-                );
-        //writeln(pos, result);
-        position=result;
+        return linalg.vec3(x, y, z);
+    }
+
+    void rotate(linalg.vec3 axis, double rad)
+    {
+        writeln(axis, rad);
+        auto rot=linalg.mat4.rotation(rad, axis);
+        writeln(rot);
+        auto result=matrix*rot;
+        matrix=result;
     }
 }
 
@@ -148,7 +156,7 @@ class Camera
 
 	linalg.mat4 projectionMatrix(int width, int height)
     {
-        //writef("%s-%s, %s degree, %s-%s\n", width, height, this.fovyDegree, this.near, this.far);
+        //writef("%s-%s, %s rad, %s-%s\n", width, height, this.fovyDegree, this.near, this.far);
         if(height==0){
             return linalg.mat4.identity();
         }
@@ -161,19 +169,20 @@ class Camera
 
     void pan(double rad)
     {
-        auto r=this.gameobject.transform.rotation.rotatey(rad);
-        this.gameobject.transform.rotation=r;
+        this.gameobject.transform.rotate(linalg.vec3(0, 1, 0), rad);
 	}
 
 	void tilt(double rad)
 	{
-        auto r=this.gameobject.transform.rotation.rotatex(rad);
-        this.gameobject.transform.rotation=r;
+        this.gameobject.transform.rotate(linalg.vec3(1, 0, 0), rad);
 	}
 
     void dolly(double d)
     {
-        this.gameobject.transform.advance(d);
+        auto dir=this.gameobject.transform.dir;
+        auto pos=this.gameobject.transform.position;
+        this.gameobject.transform.position=pos + dir * d;
+        //writeln(dir, this.gameobject.transform.position);
     }
 
     linalg.mat4 viewMatrix()

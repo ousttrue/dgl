@@ -147,10 +147,8 @@ class RenderTarget
 			if(isMouseMiddleDown){
 			}
 			if(isMouseRightDown){
-				double dxrad=std.math.PI * dx / 180.0;
-                this.scene.camera.pan(dxrad);
-				double dyrad=std.math.PI * dy / 180.0;
-                this.scene.camera.tilt(dyrad);
+                this.scene.camera.pan(dx * std.math.PI /180);
+                this.scene.camera.tilt(dy * std.math.PI /180);
 			}
 		}
 		mouseLastX=x;
