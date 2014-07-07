@@ -1,5 +1,5 @@
 import std.stdio;
-import gl3n.linalg;
+static import linalg=gl3n.linalg;
 import shader;
 import vbo;
 import texture;
@@ -7,15 +7,28 @@ import texture;
 
 struct Transform
 {
-	vec3 position;
-	quat rotation=quat.identity();
+	linalg.vec3 position=linalg.vec3(0, 0, 0);
+	linalg.quat rotation=linalg.quat.identity();
 
-	mat4 _matrix;
-	ref mat4 matrix()
+	linalg.mat4 matrix()
 	{
-		_matrix=rotation.to_matrix!(4, 4);
-		return _matrix;
+		auto m=this.rotation.to_matrix!(4, 4);
+        m[3][0]=this.position.x;
+        m[3][1]=this.position.y;
+        m[3][2]=this.position.z;
+		return m;
 	}
+
+    void advance(double d)
+    {
+        linalg.mat4 m=this.matrix();
+        auto x=m[2][0];
+        auto y=m[2][1];
+        auto z=m[2][2];
+        auto dir=linalg.vec3(x, y, z);
+        position+=dir * d;
+        writeln(position);
+    }
 }
 
 
@@ -26,7 +39,7 @@ class Animation
 	void apply(GameObject go)
 	{
 		angle+=0.1/60 * std.math.PI /180;
-		go.transform.rotation=quat.axis_rotation(angle, vec3(0, 0, 1));
+		go.transform.rotation=linalg.quat.axis_rotation(angle, linalg.vec3(0, 0, 1));
 	}
 }
 
@@ -40,7 +53,6 @@ class GameObject
 	Texture texture;
 
     this(){
-        mesh=new VAO; 
     }
 
 	void add_child(GameObject child)
@@ -60,20 +72,22 @@ class GameObject
 		}
 	}
 
-	void draw(ShaderProgram shader, ref const(mat4) parent)
+	void draw(ShaderProgram shader, ref const(linalg.mat4) parent)
 	{
 		// model params
 		auto m=this.transform.matrix * parent;
         shader.setMatrix4("uModelMatrix", m);
 		
-		auto n=mat3(m);
+		auto n=linalg.mat3(m);
         shader.setMatrix3("uNormalMatrix", n);
 
 		if(this.texture){
 			shader.setTexture("uTex1", this.texture, 0);
 		}
 
-        this.mesh.draw();
+        if(this.mesh){
+            this.mesh.draw();
+        }
 
 		foreach(GameObject child; this.children)
 		{
@@ -85,20 +99,27 @@ class GameObject
 
 class Camera
 {
-	mat4 projectionMatrix=mat4.identity();
+	linalg.mat4 projectionMatrix=linalg.mat4.identity();
     GameObject gameobject;
 
-    void pan(double rad){
+    void pan(double rad)
+    {
         auto r=this.gameobject.transform.rotation.rotatey(rad);
         this.gameobject.transform.rotation=r;
 	}
+
 	void tilt(double rad)
 	{
         auto r=this.gameobject.transform.rotation.rotatex(rad);
         this.gameobject.transform.rotation=r;
 	}
 
-    ref mat4 viewMatrix()
+    void dolly(double d)
+    {
+        this.gameobject.transform.advance(d);
+    }
+
+    linalg.mat4 viewMatrix()
     {
         return this.gameobject.transform.matrix;
     }
@@ -109,7 +130,7 @@ class Light
 {
     GameObject gameobject;
 
-    ref vec3 position()
+    ref linalg.vec3 position()
     {
 		return this.gameobject.transform.position;
     }
@@ -142,7 +163,7 @@ class Scene
 
     void draw(ShaderProgram shader)
     {
-		auto m=mat4.identity;
+		auto m=linalg.mat4.identity;
         this.root.draw(shader, m);
     }
 }

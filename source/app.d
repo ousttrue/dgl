@@ -99,14 +99,14 @@ Scene create3DScene()
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createAxis();
+        model.mesh=VAO.createAxis(1);
     }
 
     // grid
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createGrid();
+        model.mesh=VAO.createGrid(1);
     }
 
     // model
