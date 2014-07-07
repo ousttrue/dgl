@@ -25,7 +25,6 @@ struct Transform
     }
     void rotation(linalg.quat rotation)
     {
-        //writeln(rotation);
         this._rotation=rotation;
         calc();
     }
@@ -45,18 +44,24 @@ struct Transform
     }
     private void calc()
     {
-        //writeln("calc");
 		_matrix=this.rotation.to_matrix!(4, 4);
 
         auto pos=position;
         _matrix[3][0]=pos.x;
         _matrix[3][1]=pos.y;
         _matrix[3][2]=pos.z;
-
-        //writeln(_matrix.as_pretty_string());
 	}
 
-    linalg.vec3 dir()
+    linalg.vec3 up()
+    {
+        auto m=this.matrix();
+        auto x=m[1][0];
+        auto y=m[1][1];
+        auto z=m[1][2];
+        return linalg.vec3(x, y, z);
+    }
+
+    linalg.vec3 forward()
     {
         auto m=this.matrix();
         auto x=m[2][0];
@@ -67,9 +72,7 @@ struct Transform
 
     void rotate(linalg.vec3 axis, double rad)
     {
-        writeln(axis, rad);
         auto rot=linalg.mat4.rotation(rad, axis);
-        writeln(rot);
         auto result=matrix*rot;
         matrix=result;
     }
@@ -165,24 +168,6 @@ class Camera
                     width, height,
                     this.fovyDegree, this.near, this.far);
         }
-    }
-
-    void pan(double rad)
-    {
-        this.gameobject.transform.rotate(linalg.vec3(0, 1, 0), rad);
-	}
-
-	void tilt(double rad)
-	{
-        this.gameobject.transform.rotate(linalg.vec3(1, 0, 0), rad);
-	}
-
-    void dolly(double d)
-    {
-        auto dir=this.gameobject.transform.dir;
-        auto pos=this.gameobject.transform.position;
-        this.gameobject.transform.position=pos + dir * d;
-        //writeln(dir, this.gameobject.transform.position);
     }
 
     linalg.mat4 viewMatrix()

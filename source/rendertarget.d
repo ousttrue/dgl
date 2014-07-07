@@ -89,6 +89,7 @@ class RenderTarget
 	{
 		this.scene=scene;
 		this.shader=shader;
+		_updateCameraMatrix();
 	}
 
     int width;
@@ -135,30 +136,57 @@ class RenderTarget
 		isMouseRightDown=false;
 	}
 
-	double mouseLastX;
-	double mouseLastY;
+	private double _mouseLastX;
+	private double _mouseLastY;
+    private double _pan=0;
+    private double _tilt=0;
 	void onMouseMove(double x, double y)
 	{
-		if(!std.math.isnan(x) && !std.math.isnan(y)){
-			double dx=x-mouseLastX;
-			double dy=y-mouseLastY;
-			if(isMouseLeftDown){
-			}
-			if(isMouseMiddleDown){
-			}
-			if(isMouseRightDown){
-                this.scene.camera.pan(dx * std.math.PI /180);
-                this.scene.camera.tilt(dy * std.math.PI /180);
-			}
-		}
-		mouseLastX=x;
-		mouseLastY=y;
+        double dx=x-_mouseLastX;
+        double dy=y-_mouseLastY;
+        bool updated=false;
+        if(isMouseLeftDown){
+        }
+        if(isMouseMiddleDown){
+        }
+        if(isMouseRightDown){
+            this._pan-=dx * std.math.PI /180;
+            this._tilt-=dy * std.math.PI /180;
+            updated=true;
+        }
+        if(updated){
+            _updateCameraMatrix();
+        }
+
+		_mouseLastX=x;
+		_mouseLastY=y;
 	}
 
+    private double _distance=10;
 	void onMouseWheel(double d)
 	{
-        this.scene.camera.dolly(-d);
+        if(d>0){
+            _distance*=0.9;
+        }
+        else if(d<0){
+            _distance*=1.1;
+        }
+        _updateCameraMatrix();
 	}
+
+    private void _updateCameraMatrix()
+    {
+		writefln("pan %s, tilt %s, distance %s", _pan, _tilt, _distance);
+        auto pan=linalg.mat4.rotation(_pan, vec3(0, 1, 0));
+        auto tilt=linalg.mat4.rotation(_tilt, vec3(1, 0, 0));
+        //auto dolly=linalg.mat4.translation(0, 0, _distance);
+		auto dolly=linalg.mat4.identity;
+		dolly[3][2]=_distance;
+		//auto m=pan * tilt * dolly;
+		auto m=dolly * tilt * pan;
+        this.scene.camera.gameobject.transform.matrix=m;
+		writeln(m);
+    }
 
 	void draw()
 	{
