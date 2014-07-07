@@ -91,6 +91,14 @@ class RenderTarget
 		this.shader=shader;
 	}
 
+    int width;
+    int height;
+    void onResize(int w, int h)
+    {
+        this.width=w;
+        this.height=h;
+    }
+
 	bool isMouseLeftDown;
 	void onMouseLeftDown()
 	{
@@ -161,6 +169,8 @@ class RenderTarget
 			fbo.begin();
 		}
 
+        glViewport(0, 0, this.width, this.height);
+
         glClearColor(this.clearcolor.x
 					 , this.clearcolor.y
 					 , this.clearcolor.z
@@ -170,7 +180,7 @@ class RenderTarget
 
         this.shader.use();
         // world params
-		this.shader.setMatrix4("uProjectionMatrix", this.scene.camera.projectionMatrix);
+		this.shader.setMatrix4("uProjectionMatrix", this.scene.camera.projectionMatrix(this.width, this.height));
 		auto view=this.scene.camera.viewMatrix;
 		this.shader.setMatrix4("uViewMatrix", view);
         this.shader.set("uLightPosition", this.scene.light.position);

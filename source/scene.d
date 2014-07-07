@@ -99,8 +99,29 @@ class GameObject
 
 class Camera
 {
-	linalg.mat4 projectionMatrix=linalg.mat4.identity();
+    float fovyDegree=30f;
+    float near=0.5f;
+    float far=100f;
+    
     GameObject gameobject;
+
+    this()
+    {
+		this.gameobject=new GameObject;
+    }
+
+	linalg.mat4 projectionMatrix(int width, int height)
+    {
+        writef("%s-%s, %s degree, %s-%s\n", width, height, this.fovyDegree, this.near, this.far);
+        if(height==0){
+            return linalg.mat4.identity();
+        }
+        else{
+            return linalg.mat4.perspective(
+                    width, height,
+                    this.fovyDegree, this.near, this.far);
+        }
+    }
 
     void pan(double rad)
     {
@@ -130,6 +151,11 @@ class Light
 {
     GameObject gameobject;
 
+    this()
+    {
+        this.gameobject=new GameObject;
+    }
+
     ref linalg.vec3 position()
     {
 		return this.gameobject.transform.position;
@@ -148,12 +174,10 @@ class Scene
         root=new GameObject;
 		// light
 		this.light=new Light;
-        this.light.gameobject=new GameObject;
-		root.add_child(this.light.gameobject);
-		// camera
-		this.camera=new Camera;
-		this.camera.gameobject=new GameObject;
-		root.add_child(this.camera.gameobject);
+		this.root.add_child(this.light.gameobject);
+        // camera
+        this.camera=new Camera;
+        this.root.add_child(this.camera.gameobject);
     }
 
     void animate()

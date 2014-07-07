@@ -21,7 +21,13 @@ extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int actio
 
 extern(C) void framebuffer_size_callback(GLFWwindow* window, int width, int height) nothrow
 {
-    glViewport(0, 0, width, height);
+	auto renderTarget=cast(RenderTarget*)glfwGetWindowUserPointer(window);
+    try{
+        renderTarget.onResize(width, height);
+    }
+    catch(Throwable ex)
+    {
+    }
 }
 
 
@@ -99,14 +105,14 @@ Scene create3DScene()
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createAxis(1);
+        model.mesh=VAO.createAxis(10f);
     }
 
     // grid
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createGrid(1);
+        model.mesh=VAO.createGrid(10f);
     }
 
     // model
@@ -119,9 +125,11 @@ Scene create3DScene()
         auto texture=Texture.load("C:/samples/sample.png");
         model.texture=texture;
 
+        /*
         // animation
         auto animation=new Animation;
         model.animation=animation;
+        */
     }
 
 	return scene;
@@ -155,7 +163,9 @@ void main()
         return;
     }
 
-    auto window = glfwCreateWindow(800, 600 ,"GLFW3" ,null, null);
+    int w=800;
+    int h=600;
+    auto window = glfwCreateWindow(w, h, "GLFW3", null, null);
     if(!window){
         writeln("fail to glfwCreateWindow");
         return;
@@ -168,7 +178,10 @@ void main()
 	glfwSetScrollCallback(window, &mousewheel_callback);
 
     glfwMakeContextCurrent(window);
+
+    ////////////////////////////////////////////////////////////
     // after context
+    ////////////////////////////////////////////////////////////
 
     auto glver=DerelictGL.reload();
 	if(glver < derelict.opengl3.gl3.GLVersion.GL40){
@@ -201,11 +214,13 @@ void main()
 	auto backbuffer=new RenderTarget(sprites, shader);
 	glfwSetWindowUserPointer(window, &rendertarget);
     */
+
 	auto backbuffer=new RenderTarget(scene, shader);
+    backbuffer.onResize(w, h);
 	glfwSetWindowUserPointer(window, &backbuffer);
 
     // main loop
-    while (!glfwWindowShouldClose(window))
+    while(!glfwWindowShouldClose(window))
     {
 		scene.animate();
 
