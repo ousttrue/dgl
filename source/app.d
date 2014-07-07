@@ -121,8 +121,12 @@ void main()
 		throw new Exception("OpenGL version too low.");
     }
 
+	auto scene=new Scene;
+	auto camera=scene.camera;
+	auto light=scene.light;
+
     // backbuffer
-	auto backbuffer=new RenderTarget;
+	auto backbuffer=RenderTarget.createSceneTarget(scene, camera, light);
 	glfwSetWindowUserPointer(window, &backbuffer);
 
     // shader
@@ -166,7 +170,7 @@ void main()
 	auto animation=new Animation;
 	model.animation=animation;
 
-	backbuffer.root.add_child(model);
+	scene.root.add_child(model);
 
 	auto image=new Image;
 	if(!image.load("C:/samples/sample.jpg")){
@@ -183,7 +187,7 @@ void main()
     // main loop
     while (!glfwWindowShouldClose(window))
     {
-		backbuffer.root.animate();
+		scene.animate();
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);

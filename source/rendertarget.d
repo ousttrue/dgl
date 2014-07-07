@@ -6,38 +6,22 @@ import shader;
 
 class RenderTarget
 {
-	private GameObject _root;
-	GameObject root()
-	{
-		return _root;
-	}
-
-	private GameObject _light;
-	GameObject light()
-	{
-		return _light;
-	}
-
-	private GameObject _camera;
-	GameObject camera()
-	{
-		return _camera;
-	}
-	mat4 projectionMatrix=mat4.identity();
-
-	this()
-	{
-		_root=new GameObject;
-		// light
-		_light=new GameObject;
-		root.add_child(_light);
-		// camera
-		_camera=new GameObject;
-		root.add_child(_camera);
-	}
-
     ShaderProgram shader;
-	
+    Scene scene;
+    Camera camera;
+	Light light;
+
+    private this(){}
+
+    static createSceneTarget(Scene scene, Camera camera, Light light)
+    {
+        auto rendertarget=new RenderTarget;
+        rendertarget.scene=scene;
+        rendertarget.camera=camera;
+        rendertarget.light=light;
+        return rendertarget;
+    }
+
 	bool isMouseLeftDown;
 	void onMouseLeftDown()
 	{
@@ -87,8 +71,9 @@ class RenderTarget
 			}
 			if(isMouseRightDown){
 				double dxrad=std.math.PI * dx / 180.0;
+                this.camera.pan(dxrad);
 				double dyrad=std.math.PI * dy / 180.0;
-				camera.transform.rotation=camera.transform.rotation.rotatey(dxrad).rotatex(dyrad);
+                this.camera.tilt(dyrad);
 			}
 		}
 		mouseLastX=x;
@@ -103,32 +88,13 @@ class RenderTarget
 	void draw()
 	{
         this.shader.use();
-
-		this.shader.setMatrix4("uProjectionMatrix", this.projectionMatrix);
-		this.shader.setMatrix4("uViewMatrix", this.camera.transform.matrix);
-
-		auto l=this.light.transform.position;
-		//auto l=vec3(1, 1, 1);
-        this.shader.set("uLightPosition", l);
-
-		auto m=mat4.identity;
-		draw(this.root, m);
-	}
-
-	void draw(GameObject go, ref const(mat4) parent)
-	{
-		auto m=go.transform.matrix * parent;
-        this.shader.setMatrix4("uModelMatrix", m);
-		
-		auto n=mat3(m);
-        this.shader.setMatrix3("uNormalMatrix", n);
-
-        go.mesh.draw();
-
-		foreach(GameObject child; go.children)
-		{
-			draw(child, m);
-		}
+        // world params
+		this.shader.setMatrix4("uProjectionMatrix", this.camera.projectionMatrix);
+		auto view=this.camera.viewMatrix;
+		this.shader.setMatrix4("uViewMatrix", view);
+        this.shader.set("uLightPosition", this.light.position);
+        // traverse scene
+        this.scene.draw(this.shader);
 	}
 }
 

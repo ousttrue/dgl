@@ -1,7 +1,7 @@
 import std.stdio;
+import gl3n.linalg;
 import shader;
 import vbo;
-import gl3n.linalg;
 
 
 struct Transform
@@ -58,5 +58,85 @@ class GameObject
 			child.animate();
 		}
 	}
+
+	void draw(ShaderProgram shader, ref const(mat4) parent)
+	{
+		// model params
+		auto m=this.transform.matrix * parent;
+        shader.setMatrix4("uModelMatrix", m);
+		
+		auto n=mat3(m);
+        shader.setMatrix3("uNormalMatrix", n);
+
+        this.mesh.draw();
+
+		foreach(GameObject child; this.children)
+		{
+			child.draw(shader, m);
+		}
+	}
+}
+
+
+class Camera
+{
+	mat4 projectionMatrix=mat4.identity();
+    GameObject gameobject;
+
+    void pan(double rad){
+        auto r=this.gameobject.transform.rotation.rotatey(rad);
+        this.gameobject.transform.rotation=r;
+	}
+	void tilt(double rad)
+	{
+        auto r=this.gameobject.transform.rotation.rotatex(rad);
+        this.gameobject.transform.rotation=r;
+	}
+
+    ref mat4 viewMatrix()
+    {
+        return this.gameobject.transform.matrix;
+    }
+}
+
+
+class Light
+{
+    GameObject gameobject;
+
+    ref vec3 position()
+    {
+		return this.gameobject.transform.position;
+    }
+}
+
+
+class Scene
+{
+    GameObject root;
+    Light light=new Light;
+    Camera camera=new Camera;
+
+    this()
+    {
+        root=new GameObject;
+		// light
+        light.gameobject=new GameObject;
+		root.add_child(light.gameobject);
+		// camera
+		camera.gameobject=new GameObject;
+		root.add_child(camera.gameobject);
+    }
+
+    void animate()
+    {
+        this.root.animate();
+    }
+
+    void draw(ShaderProgram shader)
+    {
+		auto m=mat4.identity;
+        this.root.draw(shader, m);
+    }
 }
 
