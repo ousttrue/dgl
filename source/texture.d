@@ -111,6 +111,20 @@ class Texture
         this.id=0;
     }
 
+	static Texture load(string path)
+	{
+		auto image=new Image;
+		if(!image.load(path)){
+			return null;
+		}
+		int w=image.width;
+		int h=image.height;
+		int pixelbits=image.pixelbits;
+		auto texture=new Texture;
+		texture.store(image.ptr, w, h, pixelbits);
+		return texture;
+	}
+
     bool store(const ubyte* data, int w, int h, int pixelbits)
     {
         glBindTexture(GL_TEXTURE_2D, this.id);

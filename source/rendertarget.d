@@ -1,26 +1,95 @@
+import derelict.opengl3.gl;
 import std.stdio;
 import gl3n.linalg;
 import scene;
 import shader;
+import texture;
+
+
+class DepthBuffer
+{
+    uint id;
+
+    this()
+	out{
+		assert(this.id);
+	}
+    body {
+        glGenRenderbuffers(1, &this.id);
+        glBindRenderbuffer(GL_RENDERBUFFER, this.id);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT
+							  , 512, 512);
+    }
+
+    ~this()
+    {
+        glDeleteRenderbuffers(1, &this.id);
+        this.id=0;
+    }
+}
+
+
+class FBO
+{
+    uint id;
+    Texture texture;
+    DepthBuffer depth;
+
+    this()
+    out{
+        assert(this.id);
+    }
+    body{
+        glGenFramebuffers(1, &this.id);
+        glBindFramebuffer(GL_FRAMEBUFFER, this.id);
+        // set texture
+        this.texture=new Texture;
+        glBindTexture(GL_TEXTURE_2D, this.texture.id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA
+					 , 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, null);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0
+							   , GL_TEXTURE_2D, texture.id, 0);
+        // set depth
+        this.depth=new DepthBuffer;
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT
+								  , GL_DEPTH_ATTACHMENT, this.depth.id);
+    }
+
+    ~this()
+    {
+        glDeleteFramebuffers(1, &this.id);
+        this.id=0;
+    }
+
+	void begin()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, this.id);
+        glViewport(0, 0, 512, 512);
+        auto drawBufs=[ GL_COLOR_ATTACHMENT0 ];
+        glDrawBuffers(1, drawBufs.ptr);
+	}
+
+
+	void end()
+	{
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		//glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+}
 
 
 class RenderTarget
 {
     ShaderProgram shader;
     Scene scene;
-    Camera camera;
-	Light light;
+	FBO fbo;
+	vec4 clearcolor=vec4(0, 0, 0, 0);
 
-    private this(){}
-
-    static createSceneTarget(Scene scene, Camera camera, Light light)
-    {
-        auto rendertarget=new RenderTarget;
-        rendertarget.scene=scene;
-        rendertarget.camera=camera;
-        rendertarget.light=light;
-        return rendertarget;
-    }
+    this(Scene scene, ShaderProgram shader)
+	{
+		this.scene=scene;
+		this.shader=shader;
+	}
 
 	bool isMouseLeftDown;
 	void onMouseLeftDown()
@@ -71,9 +140,9 @@ class RenderTarget
 			}
 			if(isMouseRightDown){
 				double dxrad=std.math.PI * dx / 180.0;
-                this.camera.pan(dxrad);
+                this.scene.camera.pan(dxrad);
 				double dyrad=std.math.PI * dy / 180.0;
-                this.camera.tilt(dyrad);
+                this.scene.camera.tilt(dyrad);
 			}
 		}
 		mouseLastX=x;
@@ -87,14 +156,30 @@ class RenderTarget
 
 	void draw()
 	{
+		if(fbo){
+			fbo.begin();
+		}
+
+        glClearColor(this.clearcolor.x
+					 , this.clearcolor.y
+					 , this.clearcolor.z
+					 , this.clearcolor.w
+						 );
+        glClear(GL_COLOR_BUFFER_BIT);
+
         this.shader.use();
         // world params
-		this.shader.setMatrix4("uProjectionMatrix", this.camera.projectionMatrix);
-		auto view=this.camera.viewMatrix;
+		this.shader.setMatrix4("uProjectionMatrix", this.scene.camera.projectionMatrix);
+		auto view=this.scene.camera.viewMatrix;
 		this.shader.setMatrix4("uViewMatrix", view);
-        this.shader.set("uLightPosition", this.light.position);
+        this.shader.set("uLightPosition", this.scene.light.position);
         // traverse scene
         this.scene.draw(this.shader);
+
+		glFlush();
+
+		if(fbo){
+			fbo.end();
+		}
 	}
 }
-

@@ -2,6 +2,7 @@ import std.stdio;
 import gl3n.linalg;
 import shader;
 import vbo;
+import texture;
 
 
 struct Transform
@@ -34,7 +35,9 @@ class GameObject
 {
 	VAO mesh;
 	Transform transform;
-	GameObject[] children=[];
+	GameObject[] children;
+	Animation animation;
+	Texture texture;
 
     this(){
         mesh=new VAO; 
@@ -44,8 +47,6 @@ class GameObject
 	{
 		children~=child;
 	}
-
-	Animation animation;
 
 	void animate()
 	{
@@ -67,6 +68,10 @@ class GameObject
 		
 		auto n=mat3(m);
         shader.setMatrix3("uNormalMatrix", n);
+
+		if(this.texture){
+			shader.setTexture("uTex1", this.texture, 0);
+		}
 
         this.mesh.draw();
 
@@ -114,18 +119,20 @@ class Light
 class Scene
 {
     GameObject root;
-    Light light=new Light;
-    Camera camera=new Camera;
+    Light light;
+    Camera camera;
 
     this()
     {
         root=new GameObject;
 		// light
-        light.gameobject=new GameObject;
-		root.add_child(light.gameobject);
+		this.light=new Light;
+        this.light.gameobject=new GameObject;
+		root.add_child(this.light.gameobject);
 		// camera
-		camera.gameobject=new GameObject;
-		root.add_child(camera.gameobject);
+		this.camera=new Camera;
+		this.camera.gameobject=new GameObject;
+		root.add_child(this.camera.gameobject);
     }
 
     void animate()

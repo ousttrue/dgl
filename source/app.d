@@ -2,6 +2,7 @@ import std.stdio;
 import std.string;
 import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
+import gl3n.linalg;
 
 import shader;
 import vbo;
@@ -90,6 +91,94 @@ extern(C) void mousewheel_callback(GLFWwindow* window, double x, double y) nothr
 }
 
 
+Scene create3DScene()
+{
+	auto scene=new Scene;
+
+    // model
+	auto model=new GameObject;
+	scene.root.add_child(model);
+
+    // positions
+    model.mesh.push(VBO!float.fromVertices(3, [
+		-0.8f, -0.8f, 0.5f,
+		0.8f, -0.8f, 0.5f,
+		0.8f,  0.8f, 0.5f,
+		-0.8f,  0.8f, 0.5f,
+	]));
+    // normals
+    model.mesh.push(VBO!float.fromVertices(3, [
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+    ]));
+	// uvs
+	model.mesh.push(VBO!float.fromVertices(2, [
+		0.0f, 1.0f,
+		1.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 0.0f,
+	]));
+    // indices
+    model.mesh.elements=VBO!uint.fromVertices(1, [
+		0, 1, 2,
+		2, 3, 0,
+	]);
+
+	// texture
+	auto texture=Texture.load("C:/samples/sample.png");
+	model.texture=texture;
+
+	// animation
+	auto animation=new Animation;
+	model.animation=animation;
+
+	return scene;
+}
+
+Scene createSprites(FBO fbo)
+{
+	auto scene=new Scene;
+
+    // model
+	auto model=new GameObject;
+	scene.root.add_child(model);
+
+    // positions
+    model.mesh.push(VBO!float.fromVertices(3, [
+		-0.8f, -0.8f, 0.5f,
+		0.8f, -0.8f, 0.5f,
+		0.8f,  0.8f, 0.5f,
+		-0.8f,  0.8f, 0.5f,
+	]));
+    // normals
+    model.mesh.push(VBO!float.fromVertices(3, [
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+        0.0f, 0.0f, -1.0f,
+    ]));
+	// uvs
+	model.mesh.push(VBO!float.fromVertices(2, [
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+	]));
+    // indices
+    model.mesh.elements=VBO!uint.fromVertices(1, [
+		0, 1, 2,
+		2, 3, 0,
+	]);
+
+	// texture
+	model.texture=fbo.texture;
+
+	return scene;
+}
+
+
 void main() 
 {
     // opengl
@@ -121,77 +210,37 @@ void main()
 		throw new Exception("OpenGL version too low.");
     }
 
-	auto scene=new Scene;
-	auto camera=scene.camera;
-	auto light=scene.light;
-
-    // backbuffer
-	auto backbuffer=RenderTarget.createSceneTarget(scene, camera, light);
-	glfwSetWindowUserPointer(window, &backbuffer);
-
     // shader
     auto shader=shaderfactory.create();
     if(!shader){
         writeln("fail to create shader");
         return;
     }
-    backbuffer.shader=shader;
 
-    // model
-	auto model=new GameObject;
-    // positions
-    model.mesh.push(VBO!float.fromVertices(3, [
-		-0.8f, -0.8f, 0.5f,
-		0.8f, -0.8f, 0.5f,
-		0.8f,  0.8f, 0.5f,
-		-0.8f,  0.8f, 0.5f,
-	]));
-    // normals
-    model.mesh.push(VBO!float.fromVertices(3, [
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-        0.0f, 0.0f, -1.0f,
-    ]));
-	// uvs
-	model.mesh.push(VBO!float.fromVertices(2, [
-		0.0f, 0.0f,
-		1.0f, 0.0f,
-		1.0f, 1.0f,
-		0.0f, 1.0f,
-	]));
-    // indices
-    model.mesh.elements=VBO!uint.fromVertices(1, [
-                0, 1, 2,
-                2, 3, 0,
-                ]);
-
-	// animation
-	auto animation=new Animation;
-	model.animation=animation;
-
-	scene.root.add_child(model);
-
-	auto image=new Image;
-	if(!image.load("C:/samples/sample.jpg")){
+	// rendertarget
+	auto scene=create3DScene();
+	if(!scene){
 		return;
 	}
-	int w=image.width;
-	int h=image.height;
-	int pixelbits=image.pixelbits;
+    auto fbo=new FBO;
+	auto rendertarget=new RenderTarget(scene, shader);
+	rendertarget.fbo=fbo;
+	rendertarget.clearcolor=vec4(0.8, 0.4, 0.4, 0);
 
-	auto texture=new Texture;
-    texture.store(image.ptr, w, h, pixelbits);
-	shader.setTexture("uTex1", texture, 0);
+    // backbuffer
+	auto sprites=createSprites(fbo);
+	if(!sprites){
+		return;
+	}
+	auto backbuffer=new RenderTarget(sprites, shader);
+	glfwSetWindowUserPointer(window, &rendertarget);
 
     // main loop
     while (!glfwWindowShouldClose(window))
     {
 		scene.animate();
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
+		rendertarget.draw();
 		backbuffer.draw();
 
         glfwSwapBuffers(window);
