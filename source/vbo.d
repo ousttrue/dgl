@@ -1,4 +1,199 @@
 import derelict.opengl3.gl;
+import std.algorithm;
+
+
+enum VertexAttributes
+{
+    float2,
+    float3,    
+    float4,
+};
+int elements(VertexAttributes attr)
+{
+    final switch(attr)
+    {
+        case VertexAttributes.float2: return 2;
+        case VertexAttributes.float3: return 3;
+        case VertexAttributes.float4: return 4;
+    }
+}
+
+
+class VertexSource
+{
+    uint mode;
+    VertexAttributes[] attributes;
+    int elements;
+
+    uint vertexcount;
+    float[][] data;
+    uint[] indices;
+
+    this(uint mode, VertexAttributes[] attributes)
+    {
+        this.mode=mode;
+        this.attributes=attributes;
+        this.data=new float[][attributes.length];
+        this.indices=[];
+
+        this.elements=attributes.map!(a => a.elements).reduce!("a + b");
+    }
+
+    void addVertex(float[] vertex ...)
+    in{
+        assert(vertex.length==this.elements);
+    }
+    body
+    {
+        auto v=vertex;
+        for(int i=0; i<this.attributes.length; ++i)
+        {
+            switch(this.attributes[i])
+            {
+                case VertexAttributes.float2:
+                    this.data[i] ~= v[0..2];
+                    v=v[2..$];
+                    break;
+
+                case VertexAttributes.float3:
+                    this.data[i] ~= v[0..3];
+                    v=v[3..$];
+                    break;
+
+                case VertexAttributes.float4:
+                    this.data[i] ~= v[0..4];
+                    v=v[4..$];
+                    break;
+            }
+        }
+        ++this.vertexcount;
+    }
+
+    void addLine(float[] v0, float[] v1)
+    {
+        auto i=this.vertexcount;
+        addVertex(v0);
+        addVertex(v1);
+        this.indices ~= [i, i+1];
+    }
+
+    void addQuad(float[] v0, float[] v1, float[] v2, float[] v3)
+    {
+        auto i=this.vertexcount;
+        addVertex(v0);
+        addVertex(v1);
+        addVertex(v2);
+        addVertex(v3);
+        this.indices ~= [i, i+1, i+2];
+        this.indices ~= [i+2, i+3, i];
+    }
+
+    static VertexSource createQuad(float size)
+    {
+        auto src=new VertexSource(
+                GL_TRIANGLES
+                , [ VertexAttributes.float3 // position
+                , VertexAttributes.float3 // normal
+                , VertexAttributes.float4 // rgba
+                , VertexAttributes.float2 // uv
+                ]
+                );
+
+        src.addQuad([
+                -size, -size, 0f // pos
+                , 0.0f, 0.0f, -1.0f // normal
+                , 1f, 1f, 1f, 1f // rgba
+                , 0.0f, 0.0f // uv
+                ]
+                , [size, -size, 0f
+                , 0.0f, 0.0f, -1.0f
+                , 1f, 1f, 1f, 1f
+                , 1.0f, 0.0f
+                ]
+                , [
+                size,  size, 0f
+                , 0.0f, 0.0f, -1.0f
+                , 1f, 1f, 1f, 1f
+                , 1.0f, 1.0f
+                ]
+                , [
+                -size,  size, 0f
+                , 0.0f, 0.0f, -1.0f
+                , 1f, 1f, 1f, 1f
+                , 0.0f, 1.0f
+                ]
+                );
+        return src;
+    }
+
+    static VertexSource createAxis(float size)
+    {
+        auto src=new VertexSource(
+                GL_LINES
+                , [ VertexAttributes.float3 // position
+                , VertexAttributes.float3 // normal
+                , VertexAttributes.float4 // rgba
+                , VertexAttributes.float2 // uv
+                ]
+                );
+
+        src.addLine(
+                [
+                -size, 0, 0,
+                0.0f, 1.0f, 0.0f,
+                1f, 0f, 0f, 1f,
+                0.0f, 0.0f,
+                ]
+                , [
+                +size, 0, 0,
+                0.0f, 1.0f, 0.0f,
+                1f, 0f, 0f, 1f,
+                0.0f, 0.0f,
+                ]);
+        src.addLine(
+                [
+                0, -size, 0,
+                0.0f, 1.0f, 0.0f,
+                0f, 1f, 0f, 1f,
+                0.0f, 0.0f,
+                ]
+                , [
+                0, +size, 0,
+                0.0f, 1.0f, 0.0f,
+                0f, 1f, 0f, 1f,
+                0.0f, 0.0f,
+                ]);
+        src.addLine(
+                [
+                0, 0, -size,
+                0.0f, 1.0f, 0.0f,
+                0f, 0f, 1f, 1f,
+                0.0f, 0.0f,
+                ]
+                , [
+                0, 0, +size,
+                0.0f, 1.0f, 0.0f,
+                0f, 0f, 1f, 1f,
+                0.0f, 0.0f,
+                ]);
+
+        return src;
+    }
+
+    static VertexSource createGrid(float size)
+    {
+        auto src=new VertexSource(
+                GL_LINES
+                , [ VertexAttributes.float3 // position
+                , VertexAttributes.float3 // normal
+                , VertexAttributes.float4 // rgba
+                , VertexAttributes.float2 // uv
+                ]
+                );
+
+        return src;
+    }
+}
 
 
 class VBO(T)
@@ -62,7 +257,7 @@ class VAO
 {
     uint id;
     uint mode;
-    int vertexcount;
+    int indexcount;
 
     this(uint mode)
     out{
@@ -102,108 +297,40 @@ class VAO
     {
         glBindVertexArray(this.id);
 		if(_elements){
-			glDrawElements(this.mode, this.vertexcount, _elements.type, null);
+			glDrawElements(this.mode, this.indexcount, _elements.type, null);
 		}
 		else{
-			glDrawArrays(this.mode, 0, this.vertexcount);
+			glDrawArrays(this.mode, 0, this.indexcount);
 		}
     }
 
-    static VAO createQuad(float size)
+    static VAO create(VertexSource src)
     {
-        auto mesh=new VAO(GL_TRIANGLES);
+        auto mesh=new VAO(src.mode);
 
-        // position
-        mesh.push(VBO!float.fromVertices(3, [
-                    -size, -size, 0f,
-                    size, -size, 0f,
-                    size,  size, 0f,
-                    -size,  size, 0f,
-                    ]));
-        // normals
-        mesh.push(VBO!float.fromVertices(3, [
-                    0.0f, 0.0f, -1.0f,
-                    0.0f, 0.0f, -1.0f,
-                    0.0f, 0.0f, -1.0f,
-                    0.0f, 0.0f, -1.0f,
-                    ]));
-        // colors
-        mesh.push(VBO!float.fromVertices(4, [
-                    1f, 1f, 1f, 1f,
-                    1f, 1f, 1f, 1f,
-                    1f, 1f, 1f, 1f,
-                    1f, 1f, 1f, 1f,
-                    ]));
-        // uvs
-        mesh.push(VBO!float.fromVertices(2, [
-                    0.0f, 0.0f,
-                    1.0f, 0.0f,
-                    1.0f, 1.0f,
-                    0.0f, 1.0f,
-                    ]));
+        for(int i=0; i<src.attributes.length; ++i)
+        {
+            switch(src.attributes[i])
+            {
+                case VertexAttributes.float2:
+                    mesh.push(VBO!float.fromVertices(2, src.data[i]));
+                    break;
+
+                case VertexAttributes.float3:
+                    mesh.push(VBO!float.fromVertices(3, src.data[i]));
+                    break;
+
+                case VertexAttributes.float4:
+                    mesh.push(VBO!float.fromVertices(4, src.data[i]));
+                    break;
+            }
+        }
+
         // indices
-        mesh.elements=VBO!uint.fromVertices(1, [
-                0, 1, 2,
-                2, 3, 0,
-                ]);
-
-        mesh.vertexcount=6;
+        mesh.elements=VBO!uint.fromVertices(1, src.indices);
+        mesh.indexcount=src.indices.length;
 
         return mesh;
     }
-
-    static VAO createAxis(float size)
-    {
-        auto mesh=new VAO(GL_LINES);
-
-        // position
-        mesh.push(VBO!float.fromVertices(3, [
-                    -size, 0, 0,
-                    +size, 0, 0,
-                    0, -size, 0,
-                    0, +size, 0,
-                    0, 0, -size,
-                    0, 0, +size,
-                    ]));
-        // normals
-        mesh.push(VBO!float.fromVertices(3, [
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    0.0f, 1.0f, 0.0f,
-                    ]));
-        // colors
-        mesh.push(VBO!float.fromVertices(4, [
-                    1f, 0f, 0f, 1f,
-                    1f, 0f, 0f, 1f,
-                    0f, 1f, 0f, 1f,
-                    0f, 1f, 0f, 1f,
-                    0f, 0f, 1f, 1f,
-                    0f, 0f, 1f, 1f,
-                    ]));
-        // uvs
-        mesh.push(VBO!float.fromVertices(2, [
-                    0.0f, 0.0f,
-                    0.0f, 0.0f,
-                    0.0f, 0.0f,
-                    0.0f, 0.0f,
-                    0.0f, 0.0f,
-                    0.0f, 0.0f,
-                    ]));
-
-        mesh.vertexcount=6;
-
-        return mesh;
-    }
-
-    static VAO createGrid(float size)
-    {
-        auto mesh=new VAO(GL_LINES);
-
-        return mesh;
-    }
-
 }
 

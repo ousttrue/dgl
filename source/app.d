@@ -104,21 +104,21 @@ Scene create3DScene()
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createAxis(10f);
+        model.mesh=VAO.create(VertexSource.createAxis(10f));
     }
 
     // grid
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createGrid(10f);
+        model.mesh=VAO.create(VertexSource.createGrid(10f));
     }
 
     // model
     {
         auto model=new GameObject;
         scene.root.add_child(model);
-        model.mesh=VAO.createQuad(0.8f);
+        model.mesh=VAO.create(VertexSource.createQuad(0.8f));
 
         // texture
         auto texture=Texture.load("C:/samples/sample.png");
@@ -142,7 +142,7 @@ Scene createSprites(FBO fbo)
     // model
 	auto model=new GameObject;
 	scene.root.add_child(model);
-    model.mesh=VAO.createQuad(0.8f);
+    model.mesh=VAO.create(VertexSource.createQuad(0.8f));
 
 	// texture
 	model.texture=fbo.texture;
