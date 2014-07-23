@@ -2,14 +2,13 @@ import std.stdio;
 import std.string;
 import derelict.opengl3.gl;
 import derelict.glfw3.glfw3;
-import gl3n.linalg;
-
+import gameobject;
 import shader;
 import vbo;
 import scene;
-static import shaderfactory;
 import texture;
 import rendertarget;
+static import shaderfactory;
 
 
 extern(C) void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) nothrow
